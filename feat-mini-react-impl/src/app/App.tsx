@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   getCurrentHookSnapshot,
+  getLatestPatchLogLines,
 } from '../mini-react';
 import { Todo, TodoFilter } from './types';
 import { TodoInput } from './components/TodoInput';
@@ -28,6 +29,7 @@ export function App() {
   const [filter, setFilter] = useState<TodoFilter>('all');
   const [clickCount, setClickCount] = useState(0);
   const [inspectedTodoId, setInspectedTodoId] = useState<number>(initialTodos[2].id);
+  const [debugTick, setDebugTick] = useState(0);
   const [eventLogs, setEventLogs] = useState<string[]>([
     'App가 모든 state를 관리합니다.',
     '자식 컴포넌트는 props만 받아서 렌더링합니다.',
@@ -57,6 +59,10 @@ export function App() {
     setEventLogs(prev => [`${new Date().toLocaleTimeString('ko-KR')} - ${message}`, ...prev].slice(0, 8));
   }
 
+  function scheduleDebugRefresh() {
+    Promise.resolve().then(() => setDebugTick(prev => prev + 1));
+  }
+
   function handleAdd() {
     const text = inputText.trim();
     if (!text) return;
@@ -65,6 +71,7 @@ export function App() {
     setInputText('');
     setInspectedTodoId(newTodo.id);
     pushLog(`TodoInput -> App.handleAdd("${text}") -> todos state 업데이트`);
+    scheduleDebugRefresh();
   }
 
   function handleToggle(id: number) {
@@ -74,6 +81,7 @@ export function App() {
       prev.map(t => (t.id === id ? { ...t, completed: !t.completed } : t)),
     );
     pushLog(`TodoItem -> App.handleToggle(${id}) -> completed 상태 토글`);
+    scheduleDebugRefresh();
   }
 
   function handleDelete(id: number) {
@@ -87,6 +95,7 @@ export function App() {
       if (fallbackTodo) setInspectedTodoId(fallbackTodo.id);
     }
     pushLog(`TodoItem -> App.handleDelete(${id}) -> todos state에서 제거`);
+    scheduleDebugRefresh();
   }
 
   function handleStartEdit(id: number) {
@@ -96,6 +105,7 @@ export function App() {
     setEditingId(id);
     setEditingText(todo.text);
     pushLog(`TodoItem -> App.handleStartEdit(${id}) -> editing state 설정`);
+    scheduleDebugRefresh();
   }
 
   function handleEditSave() {
@@ -108,17 +118,20 @@ export function App() {
     setEditingId(null);
     setEditingText('');
     pushLog(`TodoItem -> App.handleEditSave(${editingId}) -> text state 반영`);
+    scheduleDebugRefresh();
   }
 
   function handleEditCancel() {
     setEditingId(null);
     setEditingText('');
     pushLog('TodoItem -> App.handleEditCancel() -> editing state 초기화');
+    scheduleDebugRefresh();
   }
 
   function handleInspect(id: number) {
     setInspectedTodoId(id);
     pushLog(`TodoItem(${id}) -> App가 props 전달 구조를 보여주기 위해 선택`);
+    scheduleDebugRefresh();
   }
 
   const hookSnapshot = getCurrentHookSnapshot();
@@ -150,6 +163,7 @@ export function App() {
     `  [8] effect(title): ${JSON.stringify(hookSnapshot[8] ?? null)}`,
     ']',
   ].join('\n');
+  const patchLogView = [`debugTick: ${debugTick}`, ...getLatestPatchLogLines()].join('\n');
   const childPropsView = inspectedTodo
     ? `TodoItem props = {
   todo: ${JSON.stringify(inspectedTodo)},
@@ -160,6 +174,12 @@ export function App() {
   onStartEdit: App.handleStartEdit
 }`
     : '선택된 Todo가 없습니다.';
+  const childSignatureView = `function TodoItem(props) {
+  // useState(...) 없음
+  // useEffect(...) 없음
+  // local hooks 배열 없음
+  return UI(props.todo, props.isEditing, props.onToggle, ...);
+}`;
 
   return (
     <div class="app-shell">
@@ -207,13 +227,18 @@ export function App() {
         <aside class="event-log-panel">
           <h3>이벤트 로그</h3>
           <p>자식이 호출한 이벤트가 App state 변경으로 이어지는 흐름입니다.</p>
-          <div class="props-flow-card">
-            <strong>부모 state to 자식 props</strong>
-            <span>선택된 자식 노드: TodoItem #{inspectedTodo?.id ?? '-'}</span>
-            <code>{inspectedTodo ? `App.todos[${todos.findIndex(todo => todo.id === inspectedTodo.id)}]` : '없음'}</code>
-            <pre>{childPropsView}</pre>
-            <p class="props-flow-note">TodoItem 안에는 useState가 없고, App이 내려준 props만 사용합니다.</p>
+          <strong class="event-section-title">부모 state to 자식 props</strong>
+          <span class="event-inline-text">선택된 자식 노드: TodoItem #{inspectedTodo?.id ?? '-'}</span>
+          <code>{inspectedTodo ? `App.todos[${todos.findIndex(todo => todo.id === inspectedTodo.id)}]` : '없음'}</code>
+          <div class="stateless-badge-row">
+            <span class="stateless-badge off">TodoItem local state 없음, App props 사용</span>
           </div>
+          <p class="compact-proof-text">
+            App이 `todos`, `editingId`, `editingText`, `filter` state를 들고 있고, TodoItem은 그 값을 props로 받아 화면만 그립니다.
+          </p>
+          <pre class="event-code-block">{childSignatureView}</pre>
+          <pre class="event-code-block">{childPropsView}</pre>
+          <p class="props-flow-note">TodoItem 안에는 useState가 없고, App이 내려준 props만 사용합니다.</p>
           <div class="event-log-list">
             {eventLogs.map((log, index) => (
               <div class="event-log-item" key={index}>{log}</div>
@@ -228,7 +253,15 @@ export function App() {
         <div class="hook-debug-grid">
           <div class="hook-panel resizable-panel">
             <h3>코드처럼 보는 hooks 배열</h3>
-            <pre>{hookCodeView}</pre>
+            <div class="hook-stack">
+              <div class="hook-split top">
+                <pre>{hookCodeView}</pre>
+              </div>
+              <div class="hook-split bottom">
+                <h4>최근 diff / patch 로그</h4>
+                <pre>{patchLogView}</pre>
+              </div>
+            </div>
           </div>
           <div class="hook-panel easy resizable-panel">
             <h3>hooks 설명 카드</h3>

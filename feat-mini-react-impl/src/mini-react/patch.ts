@@ -1,5 +1,6 @@
 import { VNode, VElement } from './vdom';
 import { PatchOp } from './diff';
+import { diff } from './diff';
 
 const listenerMap = new WeakMap<Node, Map<string, EventListener>>();
 
@@ -107,6 +108,75 @@ export function patch(dom: Node, ops: PatchOp[]): Node {
   return current;
 }
 
+function patchKeyedChildren(
+  parent: Node,
+  oldChildren: VNode[],
+  newChildren: VNode[],
+  childPatches: PatchOp extends never ? never : Array<{ index: number; op: PatchOp }>,
+): Node {
+  const childNodes = Array.from(parent.childNodes);
+  const keyedEntries = new Map<string | number, { vnode: VNode; dom: Node }>();
+  const unkeyedEntries: Array<{ vnode: VNode; dom: Node }> = [];
+
+  for (let index = 0; index < oldChildren.length; index++) {
+    const vnode = oldChildren[index];
+    const dom = childNodes[index];
+    if (!dom) continue;
+
+    if (vnode.kind === 'element' && vnode.key !== undefined) {
+      keyedEntries.set(vnode.key, { vnode, dom });
+      continue;
+    }
+
+    unkeyedEntries.push({ vnode, dom });
+  }
+
+  const nextDomOrder: Node[] = [];
+  const moveOps = childPatches.filter(patch => patch.op.type === 'MOVE');
+
+  for (const newChild of newChildren) {
+    if (newChild.kind === 'element' && newChild.key !== undefined) {
+      const entry = keyedEntries.get(newChild.key);
+      if (entry) {
+        keyedEntries.delete(newChild.key);
+        nextDomOrder.push(patch(entry.dom, diff(entry.vnode, newChild)));
+        continue;
+      }
+    }
+
+    const fallback = unkeyedEntries.shift();
+    if (fallback) {
+      nextDomOrder.push(patch(fallback.dom, diff(fallback.vnode, newChild)));
+      continue;
+    }
+
+    nextDomOrder.push(createDom(newChild));
+  }
+
+  for (const entry of keyedEntries.values()) {
+    if (entry.dom.parentNode === parent) {
+      parent.removeChild(entry.dom);
+    }
+  }
+
+  for (const entry of unkeyedEntries) {
+    if (entry.dom.parentNode === parent) {
+      parent.removeChild(entry.dom);
+    }
+  }
+
+  for (const node of nextDomOrder) {
+    parent.appendChild(node);
+  }
+
+  if (moveOps.length > 0) {
+    // MOVE op 자체는 위 재배치 로직에서 반영되며,
+    // 여기서는 테스트/디버깅용으로 의미를 유지한다.
+  }
+
+  return parent;
+}
+
 function applyOp(dom: Node, op: PatchOp): Node {
   switch (op.type) {
     case 'REPLACE': {
@@ -125,6 +195,10 @@ function applyOp(dom: Node, op: PatchOp): Node {
       return dom;
     }
     case 'CHILDREN': {
+      if (op.keyed && op.oldChildren && op.newChildren) {
+        return patchKeyedChildren(dom, op.oldChildren, op.newChildren, op.childPatches);
+      }
+
       // Group ops by index: last APPEND/REMOVE wins for structure
       // We process in order so multiple ops on same index are applied sequentially
       const childNodes = Array.from(dom.childNodes);
@@ -147,6 +221,9 @@ function applyOp(dom: Node, op: PatchOp): Node {
     case 'APPEND': {
       const newChild = createDom(op.node);
       dom.parentNode?.appendChild(newChild);
+      return dom;
+    }
+    case 'MOVE': {
       return dom;
     }
     case 'REMOVE': {

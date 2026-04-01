@@ -103,6 +103,30 @@ describe('patch() — CHILDREN', () => {
     patch(dom, diff(old, next));
     expect(dom.children).toHaveLength(0);
   });
+
+  it('key가 있는 자식 재정렬', () => {
+    const container = setup();
+    const old = h(
+      'ul',
+      null,
+      h('li', { key: 1 }, 'a'),
+      h('li', { key: 2 }, 'b'),
+      h('li', { key: 3 }, 'c'),
+    );
+    const next = h(
+      'ul',
+      null,
+      h('li', { key: 3 }, 'c'),
+      h('li', { key: 1 }, 'a'),
+      h('li', { key: 2 }, 'b'),
+    );
+    const dom = createDom(old) as HTMLElement;
+    container.appendChild(dom);
+
+    patch(dom, diff(old, next));
+
+    expect(Array.from(dom.children).map(child => child.textContent)).toEqual(['c', 'a', 'b']);
+  });
 });
 
 describe('이벤트 리스너 중복 방지', () => {

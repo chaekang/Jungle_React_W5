@@ -79,4 +79,27 @@ describe('diff()', () => {
     const children = ops.find(o => o.type === 'CHILDREN') as Extract<PatchOp, { type: 'CHILDREN' }>;
     expect(children.childPatches[0].op.type).toBe('UPDATE_TEXT');
   });
+
+  it('key가 있는 자식 순서 변경 → keyed CHILDREN', () => {
+    const old = h(
+      'ul',
+      null,
+      h('li', { key: 1 }, 'a'),
+      h('li', { key: 2 }, 'b'),
+    );
+    const next = h(
+      'ul',
+      null,
+      h('li', { key: 2 }, 'b'),
+      h('li', { key: 1 }, 'a'),
+    );
+
+    const ops = diff(old, next);
+    const children = ops.find(o => o.type === 'CHILDREN') as Extract<PatchOp, { type: 'CHILDREN' }>;
+
+    expect(children.keyed).toBe(true);
+    expect(children.oldChildren).toHaveLength(2);
+    expect(children.newChildren).toHaveLength(2);
+    expect(children.childPatches.some(patch => patch.op.type === 'MOVE')).toBe(true);
+  });
 });

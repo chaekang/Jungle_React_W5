@@ -4,4 +4,4 @@ export { diff } from './diff';
 export type { PatchOp, ChildPatch } from './diff';
 export { patch, createDom, mount } from './patch';
 export { useState, useEffect, useMemo, getCurrentHookSnapshot } from './hooks';
-export { FunctionComponent, render } from './component';
+export { FunctionComponent, render, getLatestPatchLogLines } from './component';

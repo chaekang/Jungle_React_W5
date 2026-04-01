@@ -6,7 +6,14 @@ export type PatchOp =
   | { type: 'UPDATE_PROPS'; added: Record<string, unknown>; removed: string[] }
   | { type: 'APPEND'; node: VNode }
   | { type: 'REMOVE' }
-  | { type: 'CHILDREN'; childPatches: ChildPatch[] };
+  | { type: 'MOVE'; from: number; to: number }
+  | {
+      type: 'CHILDREN';
+      childPatches: ChildPatch[];
+      keyed?: boolean;
+      oldChildren?: VNode[];
+      newChildren?: VNode[];
+    };
 
 export interface ChildPatch {
   index: number;
@@ -33,6 +40,60 @@ function diffProps(
 
   if (Object.keys(added).length === 0 && removed.length === 0) return null;
   return { added, removed };
+}
+
+function hasKeyedChildren(children: VNode[]): boolean {
+  return children.some(child => child.kind === 'element' && child.key !== undefined);
+}
+
+function getNodeKey(node: VNode | undefined): string | number | undefined {
+  if (!node || node.kind !== 'element') return undefined;
+  return node.key;
+}
+
+function diffKeyedChildren(oldChildren: VNode[], newChildren: VNode[]): ChildPatch[] {
+  const childPatches: ChildPatch[] = [];
+  const oldKeyIndex = new Map<string | number, number>();
+  const newKeySet = new Set<string | number>();
+
+  oldChildren.forEach((child, index) => {
+    const key = getNodeKey(child);
+    if (key !== undefined) {
+      oldKeyIndex.set(key, index);
+    }
+  });
+
+  newChildren.forEach((child, newIndex) => {
+    const key = getNodeKey(child);
+    if (key === undefined) return;
+
+    newKeySet.add(key);
+    const oldIndex = oldKeyIndex.get(key);
+
+    if (oldIndex === undefined) {
+      childPatches.push({ index: newIndex, op: { type: 'APPEND', node: child } });
+      return;
+    }
+
+    if (oldIndex !== newIndex) {
+      childPatches.push({ index: newIndex, op: { type: 'MOVE', from: oldIndex, to: newIndex } });
+    }
+
+    const oldChild = oldChildren[oldIndex];
+    const nestedOps = diff(oldChild, child);
+    for (const op of nestedOps) {
+      childPatches.push({ index: newIndex, op });
+    }
+  });
+
+  oldChildren.forEach((child, oldIndex) => {
+    const key = getNodeKey(child);
+    if (key !== undefined && !newKeySet.has(key)) {
+      childPatches.push({ index: oldIndex, op: { type: 'REMOVE' } });
+    }
+  });
+
+  return childPatches;
 }
 
 export function diff(oldNode: VNode, newNode: VNode): PatchOp[] {
@@ -67,6 +128,20 @@ export function diff(oldNode: VNode, newNode: VNode): PatchOp[] {
   }
 
   // 3c. children diff
+  if (hasKeyedChildren(oldEl.children) || hasKeyedChildren(newEl.children)) {
+    const keyedPatches = diffKeyedChildren(oldEl.children, newEl.children);
+    if (keyedPatches.length > 0) {
+      ops.push({
+        type: 'CHILDREN',
+        childPatches: keyedPatches,
+        keyed: true,
+        oldChildren: oldEl.children,
+        newChildren: newEl.children,
+      });
+      return ops;
+    }
+  }
+
   const childPatches: ChildPatch[] = [];
   const maxLen = Math.max(oldEl.children.length, newEl.children.length);
 
