@@ -8,10 +8,10 @@ export type PatchOp =
   | { type: 'REMOVE' }
   | { type: 'CHILDREN'; childPatches: ChildPatch[] };
 
-export interface ChildPatch {
-  index: number;
-  op: PatchOp;
-}
+export type ChildPatch =
+  | { type: 'PATCH'; oldIndex: number; newIndex: number; ops: PatchOp[] }
+  | { type: 'INSERT'; newIndex: number; node: VNode }
+  | { type: 'REMOVE'; oldIndex: number };
 
 function diffProps(
   oldProps: Record<string, unknown>,
@@ -35,29 +35,89 @@ function diffProps(
   return { added, removed };
 }
 
+function getNodeKey(node: VNode): string | number | undefined {
+  if (node.kind !== 'element') {
+    return undefined;
+  }
+
+  return node.key;
+}
+
 function diffChildren(oldNode: VElement, newNode: VElement): ChildPatch[] {
+  const oldChildren = oldNode.children;
+  const newChildren = newNode.children;
   const childPatches: ChildPatch[] = [];
-  const sharedLength = Math.min(oldNode.children.length, newNode.children.length);
+  const usedOldIndices = new Set<number>();
+  const oldKeyToIndex = new Map<string | number, number>();
+  const oldUnkeyedIndices: number[] = [];
 
-  for (let index = 0; index < sharedLength; index += 1) {
-    const nestedPatches = diff(oldNode.children[index], newNode.children[index]);
+  for (let oldIndex = 0; oldIndex < oldChildren.length; oldIndex += 1) {
+    const key = getNodeKey(oldChildren[oldIndex]);
 
-    for (const patch of nestedPatches) {
-      childPatches.push({ index, op: patch });
+    if (key === undefined) {
+      oldUnkeyedIndices.push(oldIndex);
+      continue;
+    }
+
+    if (!oldKeyToIndex.has(key)) {
+      oldKeyToIndex.set(key, oldIndex);
     }
   }
 
-  for (let index = sharedLength; index < newNode.children.length; index += 1) {
-    childPatches.push({
-      index,
-      op: { type: 'APPEND', node: newNode.children[index] },
-    });
+  let unkeyedCursor = 0;
+
+  for (let newIndex = 0; newIndex < newChildren.length; newIndex += 1) {
+    const nextChild = newChildren[newIndex];
+    const key = getNodeKey(nextChild);
+    let matchedOldIndex: number | undefined;
+
+    if (key !== undefined) {
+      const keyedMatch = oldKeyToIndex.get(key);
+      if (keyedMatch !== undefined && !usedOldIndices.has(keyedMatch)) {
+        matchedOldIndex = keyedMatch;
+      }
+    } else {
+      while (unkeyedCursor < oldUnkeyedIndices.length) {
+        const candidateIndex = oldUnkeyedIndices[unkeyedCursor];
+        unkeyedCursor += 1;
+
+        if (!usedOldIndices.has(candidateIndex)) {
+          matchedOldIndex = candidateIndex;
+          break;
+        }
+      }
+    }
+
+    if (matchedOldIndex === undefined) {
+      childPatches.push({
+        type: 'INSERT',
+        newIndex,
+        node: nextChild,
+      });
+      continue;
+    }
+
+    usedOldIndices.add(matchedOldIndex);
+    const ops = diff(oldChildren[matchedOldIndex], nextChild);
+
+    if (ops.length > 0 || matchedOldIndex !== newIndex) {
+      childPatches.push({
+        type: 'PATCH',
+        oldIndex: matchedOldIndex,
+        newIndex,
+        ops,
+      });
+    }
   }
 
-  for (let index = sharedLength; index < oldNode.children.length; index += 1) {
+  for (let oldIndex = 0; oldIndex < oldChildren.length; oldIndex += 1) {
+    if (usedOldIndices.has(oldIndex)) {
+      continue;
+    }
+
     childPatches.push({
-      index,
-      op: { type: 'REMOVE' },
+      type: 'REMOVE',
+      oldIndex,
     });
   }
 

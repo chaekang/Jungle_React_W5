@@ -45,4 +45,65 @@ describe('patch', () => {
     expect(firstClick).not.toHaveBeenCalled();
     expect(secondClick).toHaveBeenCalledTimes(1);
   });
+
+  it('reorders keyed children while reusing existing DOM nodes', () => {
+    const oldNode = h(
+      'ul',
+      null,
+      h('li', { key: 'a' }, 'A'),
+      h('li', { key: 'b' }, 'B'),
+      h('li', { key: 'c' }, 'C'),
+    );
+    const newNode = h(
+      'ul',
+      null,
+      h('li', { key: 'c' }, 'C'),
+      h('li', { key: 'a' }, 'A'),
+      h('li', { key: 'b' }, 'B'),
+    );
+
+    const domNode = createDom(oldNode) as HTMLUListElement;
+    document.body.appendChild(domNode);
+
+    const firstNode = domNode.children[0];
+    const secondNode = domNode.children[1];
+    const thirdNode = domNode.children[2];
+
+    patch(domNode, diff(oldNode, newNode));
+
+    expect(Array.from(domNode.children).map((node) => node.textContent)).toEqual(['C', 'A', 'B']);
+    expect(domNode.children[0]).toBe(thirdNode);
+    expect(domNode.children[1]).toBe(firstNode);
+    expect(domNode.children[2]).toBe(secondNode);
+  });
+
+  it('keeps keyed matches stable across remove, insert, and nested updates', () => {
+    const oldNode = h(
+      'ul',
+      null,
+      h('li', { key: 'a', className: 'old-a' }, 'A'),
+      h('li', { key: 'b', className: 'old-b' }, 'B'),
+    );
+    const newNode = h(
+      'ul',
+      null,
+      h('li', { key: 'b', className: 'new-b' }, 'B updated'),
+      h('li', { key: 'c', className: 'new-c' }, 'C'),
+    );
+
+    const domNode = createDom(oldNode) as HTMLUListElement;
+    document.body.appendChild(domNode);
+
+    const nodeA = domNode.children[0];
+    const nodeB = domNode.children[1];
+
+    patch(domNode, diff(oldNode, newNode));
+
+    expect(domNode.children).toHaveLength(2);
+    expect(domNode.children[0]).toBe(nodeB);
+    expect(domNode.children[0].textContent).toBe('B updated');
+    expect((domNode.children[0] as HTMLLIElement).className).toBe('new-b');
+    expect(Array.from(domNode.children)).not.toContain(nodeA);
+    expect(domNode.children[1].textContent).toBe('C');
+  });
 });

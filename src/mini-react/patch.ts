@@ -165,24 +165,54 @@ export function createDom(vnode: VNode): Node {
   return createElementDom(vnode);
 }
 
-function applyChildPatch(parentNode: Node, childPatch: ChildPatch, snapshot: Node[]): void {
-  const target = snapshot[childPatch.index];
+function applyChildPatches(parentNode: Node, childPatches: ChildPatch[]): void {
+  const snapshot = Array.from(parentNode.childNodes);
+  const nextNodes = new Map<number, Node>();
 
-  if (childPatch.op.type === 'APPEND') {
-    parentNode.appendChild(createDom(childPatch.op.node));
-    return;
+  for (const childPatch of childPatches) {
+    if (childPatch.type !== 'REMOVE') {
+      continue;
+    }
+
+    const target = snapshot[childPatch.oldIndex];
+    if (target?.parentNode === parentNode) {
+      parentNode.removeChild(target);
+    }
   }
 
-  if (!target) {
-    return;
+  for (const childPatch of childPatches) {
+    if (childPatch.type === 'REMOVE') {
+      continue;
+    }
+
+    if (childPatch.type === 'INSERT') {
+      nextNodes.set(childPatch.newIndex, createDom(childPatch.node));
+      continue;
+    }
+
+    const target = snapshot[childPatch.oldIndex];
+    if (!target) {
+      continue;
+    }
+
+    const nextNode = childPatch.ops.length > 0 ? patch(target, childPatch.ops) : target;
+    if (nextNode !== null) {
+      nextNodes.set(childPatch.newIndex, nextNode);
+    }
   }
 
-  if (childPatch.op.type === 'REMOVE') {
-    parentNode.removeChild(target);
-    return;
-  }
+  const orderedNodes = Array.from(nextNodes.entries())
+    .sort((left, right) => left[0] - right[0])
+    .map((entry) => entry[1]);
 
-  patch(target, [childPatch.op]);
+  for (let index = 0; index < orderedNodes.length; index += 1) {
+    const node = orderedNodes[index];
+    const currentNodeAtIndex = parentNode.childNodes[index];
+
+    if (currentNodeAtIndex !== node) {
+      parentNode.insertBefore(node, currentNodeAtIndex ?? null);
+    }
+  }
 }
 
 export function patch(node: Node, ops: PatchOp[]): Node | null {
@@ -218,10 +248,7 @@ export function patch(node: Node, ops: PatchOp[]): Node | null {
         break;
       }
       case 'CHILDREN': {
-        const snapshot = Array.from(currentNode.childNodes);
-        for (const childPatch of op.childPatches) {
-          applyChildPatch(currentNode, childPatch, snapshot);
-        }
+        applyChildPatches(currentNode, op.childPatches);
         break;
       }
     }

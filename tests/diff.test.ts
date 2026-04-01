@@ -48,11 +48,9 @@ describe('diff', () => {
         type: 'CHILDREN',
         childPatches: [
           {
-            index: 1,
-            op: {
-              type: 'APPEND',
-              node: h('li', null, 'two'),
-            },
+            type: 'INSERT',
+            newIndex: 1,
+            node: h('li', null, 'two'),
           },
         ],
       },
@@ -66,7 +64,35 @@ describe('diff', () => {
     expect(diff(oldNode, newNode)).toEqual([
       {
         type: 'CHILDREN',
-        childPatches: [{ index: 1, op: { type: 'REMOVE' } }],
+        childPatches: [{ type: 'REMOVE', oldIndex: 1 }],
+      },
+    ]);
+  });
+
+  it('matches keyed children by key instead of index', () => {
+    const oldNode = h(
+      'ul',
+      null,
+      h('li', { key: 'a' }, 'A'),
+      h('li', { key: 'b' }, 'B'),
+      h('li', { key: 'c' }, 'C'),
+    );
+    const newNode = h(
+      'ul',
+      null,
+      h('li', { key: 'c' }, 'C'),
+      h('li', { key: 'a' }, 'A'),
+      h('li', { key: 'b' }, 'B'),
+    );
+
+    expect(diff(oldNode, newNode)).toEqual([
+      {
+        type: 'CHILDREN',
+        childPatches: [
+          { type: 'PATCH', oldIndex: 2, newIndex: 0, ops: [] },
+          { type: 'PATCH', oldIndex: 0, newIndex: 1, ops: [] },
+          { type: 'PATCH', oldIndex: 1, newIndex: 2, ops: [] },
+        ],
       },
     ]);
   });
