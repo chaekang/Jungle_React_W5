@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Mini React Runtime Flow Guide (codex)</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Mini React Runtime Flow Guide (codex)</h1>
+</header>
+<h1 id="mini-react-todo-동작-순서-가이드-codex-버전">Mini React Todo
+동작 순서 가이드 (codex 버전)</h1>
+<h2 id="목적">목적</h2>
+<p>이 문서는 현재 <code>codex-gpt-5-4-high</code> 프로젝트가 실제로
+어떻게 동작하는지, 아래 4가지 상황별로 자세히 설명한다.</p>
+<ol type="1">
+<li>웹을 처음 열었을 때</li>
+<li>Todo를 새로 추가했을 때</li>
+<li>중간 Todo를 삭제했을 때</li>
+<li>Todo 카드를 클릭했을 때</li>
+</ol>
+<p>핵심 관점은 다음 4가지다.</p>
+<ul>
+<li>어떤 함수가 호출되는가</li>
+<li>hook/state 값이 어떻게 바뀌는가</li>
+<li><code>render -&gt; diff -&gt; patch -&gt; effect</code>가 어떤
+순서로 실행되는가</li>
+<li>현재 <code>codex</code> 구현이 <code>feat</code>와 무엇이
+다른가</li>
+</ul>
+<hr />
+<h2 id="먼저-이해할-구조">먼저 이해할 구조</h2>
+<h3 id="상태는-app만-가진다">1. 상태는 <code>App</code>만 가진다</h3>
+<p>이번 과제 조건에 맞춰 state는 루트 컴포넌트 <code>App</code>에서만
+관리한다.</p>
+<pre class="tsx"><code>export function App(): VNode {
+  const [todos, setTodos] = useState&lt;Todo[]&gt;(initialTodos);
+  const [inputText, setInputText] = useState(&#39;&#39;);
+  const [editingId, setEditingId] = useState&lt;number | null&gt;(null);
+  const [editingText, setEditingText] = useState(&#39;&#39;);
+  const [filter, setFilter] = useState&lt;TodoFilter&gt;(&#39;all&#39;);
+  const [clickCount, setClickCount] = useState(0);
+  const [inspectedTodoId, setInspectedTodoId] = useState&lt;number | null&gt;(initialTodos[2]?.id ?? null);
+  const [debugTick, setDebugTick] = useState(0);
+  const [eventLogs, setEventLogs] = useState&lt;string[]&gt;([
+    &#39;App가 모든 state를 관리합니다.&#39;,
+    &#39;자식 컴포넌트는 props만 받아서 렌더링합니다.&#39;,
+  ]);
+}</code></pre>
+<h3 id="자식-컴포넌트는-props만-받는다">2. 자식 컴포넌트는 props만
+받는다</h3>
+<p><code>TodoInput</code>, <code>TodoList</code>, <code>TodoItem</code>,
+<code>TodoFooter</code>는 <code>useState</code>를 갖지 않고 부모가
+내려준 props로만 동작한다.</p>
+<pre class="tsx"><code>export function TodoItem({
+  todo,
+  isEditing,
+  isInspected,
+  editingText,
+  onEditInput,
+  onEditCancel,
+  onEditSave,
+  onInspect,
+  onStartEdit,
+  onToggle,
+  onDelete,
+}: TodoItemProps): VNode {
+  return (
+    &lt;li
+      className={`todo-item ${todo.completed ? &#39;is-complete&#39; : &#39;&#39;}${isInspected ? &#39; is-inspected&#39; : &#39;&#39;}`}
+      onClick={() =&gt; {
+        onInspect(todo.id);
+        if (!isEditing) {
+          onToggle(todo.id);
+        }
+      }}
+    &gt;</code></pre>
+<h3 id="업데이트-기본-흐름">3. 업데이트 기본 흐름</h3>
+<p>모든 상태 변경은 결국 아래 흐름을 탄다.</p>
+<ol type="1">
+<li><code>setState(...)</code></li>
+<li><code>FunctionComponent.update()</code></li>
+<li><code>render()</code>로 새 VDOM 생성</li>
+<li><code>diff(oldVdom, newVdom)</code></li>
+<li><code>patch(dom, ops)</code></li>
+<li><code>scheduleEffectFlush(this)</code></li>
+<li>microtask에서 <code>flushEffects()</code></li>
+</ol>
+<p>관련 코드는 아래와 같다.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">update</span>()<span class="op">:</span> <span class="dt">void</span> {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="kw">this</span><span class="op">.</span><span class="at">vdom</span> <span class="op">===</span> <span class="kw">null</span> <span class="op">||</span> <span class="kw">this</span><span class="op">.</span><span class="at">rootNode</span> <span class="op">===</span> <span class="kw">null</span>) {</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">mount</span>()<span class="op">;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> nextVdom <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fu">render</span>()<span class="op">;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> ops <span class="op">=</span> <span class="fu">diff</span>(<span class="kw">this</span><span class="op">.</span><span class="at">vdom</span><span class="op">,</span> nextVdom)<span class="op">;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">this</span><span class="op">.</span><span class="at">vdom</span> <span class="op">=</span> nextVdom<span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (ops<span class="op">.</span><span class="at">length</span> <span class="op">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="at">rootNode</span> <span class="op">=</span> <span class="fu">patch</span>(<span class="kw">this</span><span class="op">.</span><span class="at">rootNode</span><span class="op">,</span> ops)<span class="op">;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scheduleEffectFlush</span>(<span class="kw">this</span>)<span class="op">;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="이-codex-버전의-특징">4. 이 <code>codex</code> 버전의 특징</h3>
+<p>이 구현은 <code>feat</code>와 비슷한 데모 UI를 갖지만, 코어는 다소 더
+정돈돼 있다.</p>
+<ul>
+<li><code>useState</code>는 같은 값이면 <code>update()</code>를
+생략한다.</li>
+<li><code>useEffect</code>는 <code>pendingEffects</code> 집합에 모아
+두었다가 flush 한다.</li>
+<li>children diff는 <code>PATCH / INSERT / REMOVE</code> 구조를
+사용한다.</li>
+<li>patch 로그도 과도한 raw 로그 대신 요약 형태로 남긴다.</li>
+</ul>
+<hr />
+<h2 id="시나리오-1.-웹을-처음-열었을-때">시나리오 1. 웹을 처음 열었을
+때</h2>
+<h3 id="순서">순서</h3>
+<ol type="1">
+<li>브라우저가 <a
+href="C:\Users\재혁\OneDrive\바탕%20화면\react\Jungle_React_W5\codex-gpt-5-4-high\src\app\main.ts"><code>main.ts</code></a>를
+실행한다.</li>
+<li><code>new FunctionComponent(container, () =&gt; h(App, null))</code>가
+만들어진다.</li>
+<li><code>app.mount()</code>가 호출된다.</li>
+<li><code>mount()</code> 안에서 <code>render()</code>가 실행된다.</li>
+<li><code>render()</code> 안에서
+<code>setCurrentComponent(this)</code>가 호출된다.</li>
+<li>루트 <code>App()</code>이 처음 실행된다.</li>
+<li><code>useState</code>, <code>useMemo</code>,
+<code>useEffect</code>가 순서대로 hooks 배열 슬롯에 저장된다.</li>
+<li><code>createDom(nextVdom)</code>가 실제 DOM 노드를 만든다.</li>
+<li><code>container.replaceChildren(this.rootNode)</code>로 첫 DOM이
+붙는다.</li>
+<li><code>recordPatchLogs([])</code>가 실행되어 현재 patch 로그는
+<code>변경 없음</code> 상태가 된다.</li>
+<li><code>scheduleEffectFlush(this)</code>가 호출된다.</li>
+<li>microtask에서 <code>flushEffects()</code>가 실행된다.</li>
+<li><code>useEffect</code> 본문이 <code>document.title</code>을 현재
+Todo 상태에 맞게 갱신한다.</li>
+</ol>
+<h3 id="호출-함수">호출 함수</h3>
+<ul>
+<li><code>FunctionComponent.mount</code></li>
+<li><code>FunctionComponent.render</code></li>
+<li><code>setCurrentComponent</code></li>
+<li><code>App</code></li>
+<li><code>useState</code></li>
+<li><code>useMemo</code></li>
+<li><code>useEffect</code></li>
+<li><code>createDom</code></li>
+<li><code>scheduleEffectFlush</code></li>
+<li><code>flushEffects</code></li>
+</ul>
+<h3 id="관련-코드">관련 코드</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> app <span class="op">=</span> <span class="kw">new</span> <span class="fu">FunctionComponent</span>(container<span class="op">,</span> () <span class="kw">=&gt;</span> <span class="fu">h</span>(App<span class="op">,</span> <span class="kw">null</span>))<span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>app<span class="op">.</span><span class="fu">mount</span>()<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">mount</span>()<span class="op">:</span> <span class="dt">void</span> {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> nextVdom <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fu">render</span>()<span class="op">;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">this</span><span class="op">.</span><span class="at">vdom</span> <span class="op">=</span> nextVdom<span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">this</span><span class="op">.</span><span class="at">rootNode</span> <span class="op">=</span> <span class="fu">createDom</span>(nextVdom)<span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">this</span><span class="op">.</span><span class="at">container</span><span class="op">.</span><span class="fu">replaceChildren</span>(<span class="kw">this</span><span class="op">.</span><span class="at">rootNode</span>)<span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">recordPatchLogs</span>([])<span class="op">;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scheduleEffectFlush</span>(<span class="kw">this</span>)<span class="op">;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="이때-중요한-포인트">이때 중요한 포인트</h3>
+<ul>
+<li>첫 렌더에서는 <code>diff()</code>가 아직 없다.</li>
+<li>첫 화면은 <code>createDom()</code>으로 처음 생성된다.</li>
+<li>effect는 DOM이 붙은 뒤 실행된다.</li>
+<li><code>codex</code>는 첫 렌더 이후 patch 로그를 명시적으로 초기화해
+디버그 패널에 바로 보여준다.</li>
+</ul>
+<hr />
+<h2 id="시나리오-2.-todo를-새로-추가했을-때">시나리오 2. Todo를 새로
+추가했을 때</h2>
+<p>예: 입력창에 텍스트를 입력하고 <code>추가</code> 버튼을 누른 경우</p>
+<h3 id="순서-1">순서</h3>
+<ol type="1">
+<li>사용자가 <code>TodoInput</code>의 버튼을 클릭한다.</li>
+<li>버튼의 <code>onClick={() =&gt; onAdd()}</code>가 실행된다.</li>
+<li>부모에서 내려준 <code>App.handleAdd()</code>가 호출된다.</li>
+<li><code>handleAdd()</code>가 <code>inputText.trim()</code>으로
+텍스트를 검사한다.</li>
+<li>새 Todo 객체
+<code>{ id: nextTodoId++, text, completed: false }</code>를 만든다.</li>
+<li><code>setTodos(prev =&gt; [...prev, nextTodo])</code>가
+실행된다.</li>
+<li><code>setInputText('')</code>가 실행된다.</li>
+<li><code>setInspectedTodoId(nextTodo.id)</code>가 실행된다.</li>
+<li><code>pushLog(...)</code>가 <code>eventLogs</code> state를
+갱신한다.</li>
+<li><code>scheduleDebugRefresh()</code>가 <code>debugTick</code>을 하나
+증가시키는 microtask를 예약한다.</li>
+<li>각 <code>setState</code>는 <code>useState</code>의 setter를 통해
+<code>component.update()</code>를 요청한다.</li>
+<li><code>FunctionComponent.update()</code>가 호출되어
+<code>render()</code>가 다시 실행된다.</li>
+<li>새 VDOM에서 Todo 리스트 끝에 새 Todo가 추가되고, input
+<code>value</code>는 빈 문자열이 된다.</li>
+<li><code>diff()</code>가 이전 VDOM과 새 VDOM을 비교한다.</li>
+<li>입력창에는 <code>UPDATE_PROPS</code>, Todo 리스트에는
+<code>CHILDREN -&gt; INSERT</code>가 만들어질 수 있다.</li>
+<li><code>patch()</code>가 실제 DOM에 새 Todo만 추가하고, input 값만
+비운다.</li>
+<li><code>scheduleEffectFlush(this)</code> 후
+<code>flushEffects()</code>가 실행되고 <code>document.title</code>도
+최신 상태로 맞춰진다.</li>
+</ol>
+<h3 id="호출-함수-1">호출 함수</h3>
+<ul>
+<li><code>TodoInput</code> 버튼 <code>onClick</code></li>
+<li><code>App.handleAdd</code></li>
+<li><code>setTodos</code></li>
+<li><code>setInputText</code></li>
+<li><code>setInspectedTodoId</code></li>
+<li><code>pushLog</code></li>
+<li><code>scheduleDebugRefresh</code></li>
+<li><code>useState</code> 내부 setter</li>
+<li><code>FunctionComponent.update</code></li>
+<li><code>diff</code></li>
+<li><code>patch</code></li>
+<li><code>scheduleEffectFlush</code></li>
+<li><code>flushEffects</code></li>
+</ul>
+<h3 id="관련-코드-1">관련 코드</h3>
+<pre class="tsx"><code>&lt;button
+  className=&quot;todo-add-button&quot;
+  type=&quot;button&quot;
+  disabled={isDisabled}
+  onClick={() =&gt; {
+    onAdd();
+  }}
+&gt;
+  추가
+&lt;/button&gt;</code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">handleAdd</span>()<span class="op">:</span> <span class="dt">void</span> {</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> trimmedText <span class="op">=</span> inputText<span class="op">.</span><span class="fu">trim</span>()<span class="op">;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (trimmedText<span class="op">.</span><span class="at">length</span> <span class="op">===</span> <span class="dv">0</span>) {</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> nextTodo<span class="op">:</span> Todo <span class="op">=</span> {</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    id<span class="op">:</span> nextTodoId<span class="op">++,</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    text<span class="op">:</span> trimmedText<span class="op">,</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    completed<span class="op">:</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  }<span class="op">;</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setTodos</span>((previousTodos) <span class="kw">=&gt;</span> [<span class="op">...</span>previousTodos<span class="op">,</span> nextTodo])<span class="op">;</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setInputText</span>(<span class="st">&#39;&#39;</span>)<span class="op">;</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setInspectedTodoId</span>(nextTodo<span class="op">.</span><span class="at">id</span>)<span class="op">;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pushLog</span>(<span class="vs">`TodoInput -&gt; App.handleAdd(&quot;</span><span class="sc">${</span>trimmedText<span class="sc">}</span><span class="vs">&quot;) -&gt; todos state 업데이트`</span>)<span class="op">;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scheduleDebugRefresh</span>()<span class="op">;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="diff-patch-관점-해석">diff / patch 관점 해석</h3>
+<ul>
+<li>입력창: <code>value=""</code>로 바뀌므로
+<code>UPDATE_PROPS</code></li>
+<li>Todo 리스트: 자식이 하나 늘어나므로 <code>CHILDREN</code> 안
+<code>INSERT</code></li>
+<li>전체 DOM 교체는 아니다</li>
+</ul>
+<hr />
+<h2 id="시나리오-3.-중간-todo를-삭제했을-때">시나리오 3. 중간 Todo를
+삭제했을 때</h2>
+<p>예: <code>id=3</code>인 Todo를 삭제한 경우</p>
+<h3 id="순서-2">순서</h3>
+<ol type="1">
+<li>사용자가 해당 <code>TodoItem</code>의 <code>삭제</code> 버튼을
+클릭한다.</li>
+<li>버튼 handler에서 <code>event.stopPropagation()</code>이 먼저
+실행된다.</li>
+<li>이어서 <code>onDelete(todo.id)</code>가 호출된다.</li>
+<li>부모에서 내려준 <code>App.handleDelete(id)</code>가 실행된다.</li>
+<li><code>setTodos(prev =&gt; prev.filter(todo =&gt; todo.id !== id))</code>가
+실행된다.</li>
+<li>삭제 대상이 현재 <code>editingId</code>이면 <code>editingId</code>,
+<code>editingText</code>도 같이 초기화한다.</li>
+<li>삭제 대상이 현재 <code>inspectedTodoId</code>이면 남아 있는 다른
+Todo를 선택 상태로 바꾼다.</li>
+<li><code>pushLog(...)</code>와 <code>scheduleDebugRefresh()</code>가
+호출된다.</li>
+<li><code>component.update()</code>가 실행되어 <code>App</code>이 다시
+렌더링된다.</li>
+<li>새 VDOM의 Todo 리스트에서는 해당 key를 가진 항목이 빠진다.</li>
+<li><code>diffChildren()</code>는 old children과 new children를
+비교하면서 key가 있는 항목은 <code>oldKeyToIndex</code>로 매칭한다.</li>
+<li>삭제된 항목은 <code>REMOVE</code>, 남아 있는 항목은 같은 key를
+기준으로 <code>PATCH oldIndex -&gt; newIndex</code> 형태로
+유지된다.</li>
+<li><code>patch()</code> 안 <code>applyChildPatches()</code>는
+snapshot을 기준으로 제거할 자식만 지우고, 남은 자식은 재사용하거나
+필요한 nested patch만 적용한다.</li>
+<li>최종적으로 실제 DOM에서는 삭제된 카드만 사라지고, 다른 카드는 최대한
+재사용된다.</li>
+</ol>
+<h3 id="호출-함수-2">호출 함수</h3>
+<ul>
+<li><code>TodoItem</code> 삭제 버튼 <code>onClick</code></li>
+<li><code>App.handleDelete</code></li>
+<li><code>setTodos</code></li>
+<li><code>setEditingId</code></li>
+<li><code>setEditingText</code></li>
+<li><code>setInspectedTodoId</code></li>
+<li><code>pushLog</code></li>
+<li><code>scheduleDebugRefresh</code></li>
+<li><code>FunctionComponent.update</code></li>
+<li><code>diff</code></li>
+<li><code>diffChildren</code></li>
+<li><code>patch</code></li>
+<li><code>applyChildPatches</code></li>
+</ul>
+<h3 id="관련-코드-2">관련 코드</h3>
+<pre class="tsx"><code>&lt;button
+  className=&quot;todo-action danger&quot;
+  type=&quot;button&quot;
+  aria-label={`${todo.text} 삭제`}
+  onClick={(event: Event) =&gt; {
+    event.stopPropagation();
+    onDelete(todo.id);
+  }}
+&gt;
+  삭제
+&lt;/button&gt;</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">handleDelete</span>(id<span class="op">:</span> <span class="dt">number</span>)<span class="op">:</span> <span class="dt">void</span> {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setTodos</span>((previousTodos) <span class="kw">=&gt;</span> previousTodos<span class="op">.</span><span class="fu">filter</span>((todo) <span class="kw">=&gt;</span> todo<span class="op">.</span><span class="at">id</span> <span class="op">!==</span> id))<span class="op">;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (editingId <span class="op">===</span> id) {</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setEditingId</span>(<span class="kw">null</span>)<span class="op">;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setEditingText</span>(<span class="st">&#39;&#39;</span>)<span class="op">;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (inspectedTodoId <span class="op">===</span> id) {</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">const</span> fallbackTodo <span class="op">=</span> todos<span class="op">.</span><span class="fu">find</span>((todo) <span class="kw">=&gt;</span> todo<span class="op">.</span><span class="at">id</span> <span class="op">!==</span> id)<span class="op">;</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setInspectedTodoId</span>(fallbackTodo<span class="op">?.</span><span class="at">id</span> <span class="op">??</span> <span class="kw">null</span>)<span class="op">;</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pushLog</span>(<span class="vs">`TodoItem -&gt; App.handleDelete(</span><span class="sc">${</span>id<span class="sc">}</span><span class="vs">) -&gt; todos state에서 제거`</span>)<span class="op">;</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scheduleDebugRefresh</span>()<span class="op">;</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode ts"><code class="sourceCode typescript"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> childPatches<span class="op">:</span> ChildPatch[] <span class="op">=</span> matchedChildren<span class="op">.</span><span class="fu">map</span>((match) <span class="kw">=&gt;</span> {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (match<span class="op">.</span><span class="at">oldIndex</span> <span class="op">===</span> <span class="kw">undefined</span>) {</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>      type<span class="op">:</span> <span class="st">&#39;INSERT&#39;</span><span class="op">,</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>      newIndex<span class="op">:</span> match<span class="op">.</span><span class="at">newIndex</span><span class="op">,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>      node<span class="op">:</span> match<span class="op">.</span><span class="at">node</span><span class="op">,</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    }<span class="op">;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> {</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    type<span class="op">:</span> <span class="st">&#39;PATCH&#39;</span><span class="op">,</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    oldIndex<span class="op">:</span> match<span class="op">.</span><span class="at">oldIndex</span><span class="op">,</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    newIndex<span class="op">:</span> match<span class="op">.</span><span class="at">newIndex</span><span class="op">,</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    ops<span class="op">:</span> match<span class="op">.</span><span class="at">ops</span><span class="op">,</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  }<span class="op">;</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<h3 id="이때-중요한-포인트-1">이때 중요한 포인트</h3>
+<ul>
+<li>현재 <code>codex</code>는 <code>MOVE</code> 패치를 쓰지 않는다.</li>
+<li>대신 <code>PATCH oldIndex -&gt; newIndex</code>와
+<code>REMOVE</code>를 조합해 keyed children을 안정적으로
+재배치한다.</li>
+<li>즉 key는 여전히 중요하지만, 표현 방식이 <code>feat</code>와
+다르다.</li>
+</ul>
+<hr />
+<h2 id="시나리오-4.-todo-카드를-클릭했을-때">시나리오 4. Todo 카드를
+클릭했을 때</h2>
+<p>예: 카드를 눌러 완료/미완료를 토글한 경우</p>
+<h3 id="순서-3">순서</h3>
+<ol type="1">
+<li>사용자가 <code>li.todo-item</code> 전체를 클릭한다.</li>
+<li><code>TodoItem</code>의 <code>onClick</code>이 실행된다.</li>
+<li>내부에서 <code>onInspect(todo.id)</code>가 먼저 호출된다.</li>
+<li>수정 중이 아니라면 <code>onToggle(todo.id)</code>가 이어서
+호출된다.</li>
+<li>부모 <code>App.handleInspect(id)</code>가
+<code>setInspectedTodoId(id)</code>를 실행한다.</li>
+<li>부모 <code>App.handleToggle(id)</code>가
+<code>setInspectedTodoId(id)</code>를 다시 보장하고,
+<code>setClickCount(prev =&gt; prev + 1)</code>를 실행한다.</li>
+<li>이어서 <code>setTodos(prev =&gt; prev.map(...))</code>가 실행되어
+해당 Todo의 <code>completed</code>가 반전된다.</li>
+<li><code>pushLog(...)</code>와 <code>scheduleDebugRefresh()</code>가
+실행된다.</li>
+<li><code>component.update()</code>가 호출되어 <code>App</code>이 다시
+렌더링된다.</li>
+<li>새 VDOM에서는 다음 정보가 달라질 수 있다.
+<ul>
+<li>카드 class (<code>is-complete</code>)</li>
+<li>checkbox <code>checked</code></li>
+<li>footer의 남은 개수</li>
+<li>hooks 패널의 <code>clickCount</code>, <code>todos</code>, memo
+값</li>
+<li>event log 패널 내용</li>
+</ul></li>
+<li><code>diff()</code>는 바뀐 props/text만 찾는다.</li>
+<li><code>patch()</code>는 실제 DOM의 해당 속성과 텍스트만
+수정한다.</li>
+<li>마지막으로 <code>flushEffects()</code>가 실행되어
+<code>document.title</code>을 최신 상태로 맞춘다.</li>
+</ol>
+<h3 id="호출-함수-3">호출 함수</h3>
+<ul>
+<li><code>TodoItem li.onClick</code></li>
+<li><code>App.handleInspect</code></li>
+<li><code>App.handleToggle</code></li>
+<li><code>setInspectedTodoId</code></li>
+<li><code>setClickCount</code></li>
+<li><code>setTodos</code></li>
+<li><code>pushLog</code></li>
+<li><code>scheduleDebugRefresh</code></li>
+<li><code>FunctionComponent.update</code></li>
+<li><code>diff</code></li>
+<li><code>patch</code></li>
+<li><code>scheduleEffectFlush</code></li>
+<li><code>flushEffects</code></li>
+</ul>
+<h3 id="관련-코드-3">관련 코드</h3>
+<pre class="tsx"><code>&lt;li
+  className={`todo-item ${todo.completed ? &#39;is-complete&#39; : &#39;&#39;}${isInspected ? &#39; is-inspected&#39; : &#39;&#39;}`}
+  onClick={() =&gt; {
+    onInspect(todo.id);
+    if (!isEditing) {
+      onToggle(todo.id);
+    }
+  }}
+&gt;</code></pre>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode ts"><code class="sourceCode typescript"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">handleToggle</span>(id<span class="op">:</span> <span class="dt">number</span>)<span class="op">:</span> <span class="dt">void</span> {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setInspectedTodoId</span>(id)<span class="op">;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setClickCount</span>((previous) <span class="kw">=&gt;</span> previous <span class="op">+</span> <span class="dv">1</span>)<span class="op">;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setTodos</span>((previousTodos) <span class="kw">=&gt;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    previousTodos<span class="op">.</span><span class="fu">map</span>((todo) <span class="kw">=&gt;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>      todo<span class="op">.</span><span class="at">id</span> <span class="op">===</span> id <span class="op">?</span> { <span class="op">...</span>todo<span class="op">,</span> completed<span class="op">:</span> <span class="op">!</span>todo<span class="op">.</span><span class="at">completed</span> } <span class="op">:</span> todo<span class="op">,</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    )<span class="op">,</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  )<span class="op">;</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pushLog</span>(<span class="vs">`TodoItem -&gt; App.handleToggle(</span><span class="sc">${</span>id<span class="sc">}</span><span class="vs">) -&gt; completed 상태 토글`</span>)<span class="op">;</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scheduleDebugRefresh</span>()<span class="op">;</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="이때-중요한-포인트-2">이때 중요한 포인트</h3>
+<ul>
+<li>클릭은 자식에서 시작되지만, 실제 state 변경은 부모
+<code>App</code>이 한다.</li>
+<li>자식 <code>TodoItem</code>은 local state 없이 props와 callback만
+사용한다.</li>
+<li>즉 이 화면은 <code>Lifting State Up</code>을 데모로 보여주는
+구조다.</li>
+</ul>
+<hr />
+<h2 id="개-시나리오-공통-요약">4개 시나리오 공통 요약</h2>
+<p>모든 상황에서 공통 흐름은 거의 같다.</p>
+<ol type="1">
+<li>사용자 이벤트 발생</li>
+<li>자식 컴포넌트가 부모 callback 호출</li>
+<li>부모 <code>App</code>의 state 변경</li>
+<li><code>FunctionComponent.update()</code> 실행</li>
+<li><code>App</code>과 자식 함수 컴포넌트들이 다시 호출되어 새 VDOM
+생성</li>
+<li><code>diff(oldVdom, newVdom)</code>로 변경점 계산</li>
+<li><code>patch(dom, ops)</code>로 실제 DOM의 필요한 부분만 수정</li>
+<li><code>scheduleEffectFlush()</code>로 effect flush 예약</li>
+<li>microtask에서 <code>flushEffects()</code> 실행</li>
+</ol>
+<p>즉 이 mini-react는:</p>
+<ul>
+<li>렌더 함수 관점에서는 루트 <code>App</code>이 다시 실행되고</li>
+<li>DOM 관점에서는 바뀐 부분만 patch 하는 구조다</li>
+</ul>
+<hr />
+<h2 id="실제-react와의-차이">실제 React와의 차이</h2>
+<p>이 프로젝트는 과제용 mini-react이므로 실제 React와 차이가 있다.</p>
+<ul>
+<li>state를 루트 <code>App</code>에서만 관리한다</li>
+<li>자식 컴포넌트는 독립 hook/state를 갖지 않는다</li>
+<li>Fiber, scheduling, batching 같은 고급 기능은 없다</li>
+<li>diff는 단순화된 tree diff + keyed child matching 구조다</li>
+<li>다만 <code>codex</code> 버전은 동일 state 값일 때 update를 생략하고,
+effect flush도 조금 더 체계적으로 관리한다</li>
+</ul>
+<p>그래도 핵심 학습 포인트는 잘 드러난다.</p>
+<ul>
+<li>함수 컴포넌트</li>
+<li>hook 배열 기반 state 유지</li>
+<li>render -&gt; diff -&gt; patch -&gt; effect 흐름</li>
+<li>props-only 자식 구조</li>
+<li>key 기반 자식 식별</li>
+</ul>
+</body>
+</html>
