@@ -8,9 +8,7 @@
 
 <p align="center">모바일에서 README를 바로 열 수 있는 QR 코드입니다.</p>
 
-정글 5주차 수요 코딩회 과제로, React의 핵심 개념인 `Component`, `State`, `Hooks`, `Virtual DOM + Diff + Patch`를 직접 구현하고 이를 활용한 Todo 데모 페이지를 만든 프로젝트입니다.
 
-이 README는 발표용 문서입니다. 발표에서는 아래 흐름대로 설명한 뒤, 바로 데모로 연결할 수 있게 구성했습니다.
 
 ## 목차
 
@@ -26,13 +24,12 @@
 
 
 ## 프로젝트 한 줄 소개
-
-함수형 컴포넌트, 루트 상태 관리, Hook 배열, Virtual DOM diff/patch를 직접 구현한 뒤, 그 내부 동작까지 눈으로 설명할 수 있게 만든 Mini React Todo 데모입니다.
+React의 핵심 개념인 `Component`, `State`, `Hooks`, `Virtual DOM + Diff + Patch`를 직접 구현하고 이를 직관적으로 이해할 수 있는 Todo 데모 페이지를 만든 프로젝트입니다.
 
 
 ### 1. 왜 이 프로젝트를 만들었는가
-
-- React를 "사용"하는 대신, React가 왜 그렇게 동작하는지 직접 구현으로 이해하고 싶었습니다.
+- 4주차 수요 코딩회에서는 Virtual DOM을 만들고, 이전 Virtual DOM과 새로운 Virtual DOM을 비교해 diff 알고리즘으로 달라진 부분을 찾은 뒤, patch를 통해 실제 DOM에 반영하는 렌더링 과정에 초점을 맞췄습니다.
+- 5주차에는 그 흐름을 한 단계 더 확장해, 함수형 컴포넌트, FunctionComponent, hooks[], useState, useEffect, useMemo를 직접 구현하고, 상태 변경 이후 왜 새로운 Virtual DOM이 다시 만들어지는지까지 이해하고 구현하는 데 초점을 맞췄습니다.
 - 특히 아래 질문에 답할 수 있는 결과물을 만드는 것이 목표였습니다.
   - 함수형 컴포넌트는 매번 다시 실행되는데 state는 어디에 저장될까?
   - `setState`가 호출되면 어떤 순서로 다시 렌더링될까?
@@ -44,24 +41,9 @@
 - `src/app`: 그 코어를 사용하는 Todo 데모 앱
 - 루트 `App`이 모든 상태를 관리하고, 자식 컴포넌트는 props만 받는 stateless 구조로 설계했습니다.
 
-### 3. 무엇을 데모로 보여줄 것인가
-
-- Todo 추가
-- 카드 클릭/체크박스 클릭으로 완료 토글
-- 수정, 저장, 취소, 삭제
-- 전체 / 진행 중 / 완료 필터 변경
-- hooks 배열 상태
-- 최근 diff / patch 로그
-- 선택한 Todo가 자식 `TodoItem`에 어떤 props로 전달되는지
-
-### 4. 마지막에 무엇을 비교할 것인가
-
-- 실제 React와 비교했을 때, 우리 구현은 어디까지 닮았고 어디서 단순화했는지 설명합니다.
 
 ## 과제 요구사항 대응
 
-| 요구사항 | 우리 프로젝트의 대응 |
-| --- | --- |
 | 함수형 컴포넌트 | `App`, `TodoInput`, `TodoList`, `TodoItem`, `TodoFooter` 모두 함수형으로 작성 |
 | `FunctionComponent` 클래스 | `src/mini-react/component.ts`에서 구현 |
 | `hooks[]` 배열 | 루트 `FunctionComponent` 인스턴스가 모든 Hook 상태 보관 |
@@ -126,8 +108,6 @@
 
 ## 실제 동작 흐름
 
-이 프로젝트는 문서보다 코드 기준으로 설명하는 것이 안전합니다. 발표 때는 아래 흐름을 그대로 말하면 됩니다.
-
 ### 1. 초기 마운트
 
 ```text
@@ -159,7 +139,7 @@ main.ts
   -> microtask 시점에 effect 실행
 ```
 
-### 3. Hook이 유지되는 이유
+### 3. state가 유지되는 이유
 
 - state는 함수 안에 저장되지 않습니다.
 - 루트 `FunctionComponent` 인스턴스의 `hooks[]` 배열에 저장됩니다.
