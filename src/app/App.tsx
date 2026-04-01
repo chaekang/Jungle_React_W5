@@ -275,38 +275,8 @@ export function App(): VNode {
             />
           </div>
           <aside className="event-log-panel">
-            <h3>이벤트 로그</h3>
-            <p>자식이 호출한 이벤트가 App state 변경으로 이어지는 흐름입니다.</p>
-            <strong className="event-section-title">부모 state to 자식 props</strong>
-            <span className="event-inline-text">
-              선택된 자식 노드: TodoItem #{inspectedTodo?.id ?? '-'}
-            </span>
-            <code>
-              {inspectedTodo
-                ? `App.todos[${todos.findIndex((todo) => todo.id === inspectedTodo.id)}]`
-                : '없음'}
-            </code>
-            <div className="stateless-badge-row">
-              <span className="stateless-badge off">
-                TodoItem local state 없음, App props 사용
-              </span>
-            </div>
-            <p className="compact-proof-text">
-              App이 `todos`, `editingId`, `editingText`, `filter` state를 들고 있고,
-              TodoItem은 그 값을 props로 받아 화면만 그립니다.
-            </p>
             <pre className="event-code-block">{childSignatureView}</pre>
             <pre className="event-code-block">{childPropsView}</pre>
-            <p className="props-flow-note">
-              TodoItem 안에는 useState가 없고, App이 내려준 props만 사용합니다.
-            </p>
-            <div className="event-log-list">
-              {eventLogs.map((log, index) => (
-                <div className="event-log-item" key={index}>
-                  {log}
-                </div>
-              ))}
-            </div>
           </aside>
         </section>
         <TodoFooter remaining={remainingCount} total={todos.length} filter={filter} />
