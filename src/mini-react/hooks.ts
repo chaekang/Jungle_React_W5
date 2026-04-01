@@ -1,4 +1,4 @@
-import { debugLog } from './logger';
+import { debugLog, infoLog } from './logger';
 
 export interface StateHook<T> {
   type: 'state';
@@ -30,6 +30,57 @@ let currentComponent: HookHost | null = null;
 let hookIndex = 0;
 const pendingEffects = new Set<HookHost>();
 let effectFlushScheduled = false;
+
+function summarizeValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return {
+      type: 'array',
+      length: value.length,
+    };
+  }
+
+  if (typeof value === 'function') {
+    return '[function]';
+  }
+
+  if (value && typeof value === 'object') {
+    return {
+      type: 'object',
+      keys: Object.keys(value as Record<string, unknown>),
+    };
+  }
+
+  return value;
+}
+
+export function summarizeHookSlots(hooks: HookSlot[]): Array<Record<string, unknown>> {
+  return hooks.map((slot, index) => {
+    if (slot.type === 'state') {
+      return {
+        index,
+        type: slot.type,
+        value: summarizeValue(slot.value),
+      };
+    }
+
+    if (slot.type === 'effect') {
+      return {
+        index,
+        type: slot.type,
+        deps: slot.deps.map(summarizeValue),
+        needsRun: slot.needsRun,
+        hasCleanup: typeof slot.cleanup === 'function',
+      };
+    }
+
+    return {
+      index,
+      type: slot.type,
+      deps: slot.deps.map(summarizeValue),
+      value: summarizeValue(slot.value),
+    };
+  });
+}
 
 function assertCurrentComponent(): HookHost {
   if (currentComponent === null) {
@@ -92,6 +143,8 @@ export function flushEffects(): void {
   debugLog('Effect:Flush', '예약된 effect flush를 실행합니다.', {
     componentCount: queuedComponents.length,
   });
+  let executedEffectCount = 0;
+  let cleanupCount = 0;
 
   for (const component of queuedComponents) {
     for (const slot of component.hooks) {
@@ -102,16 +155,26 @@ export function flushEffects(): void {
       debugLog('Effect:Flush', 'effect cleanup을 먼저 실행합니다.', {
         hasCleanup: typeof slot.cleanup === 'function',
       });
+      if (typeof slot.cleanup === 'function') {
+        cleanupCount += 1;
+      }
       slot.cleanup?.();
       const nextCleanup = slot.pendingFn();
       slot.cleanup = typeof nextCleanup === 'function' ? nextCleanup : undefined;
       slot.pendingFn = undefined;
       slot.needsRun = false;
+      executedEffectCount += 1;
       debugLog('Effect:Flush', 'effect 본문 실행이 완료되었습니다.', {
         hasCleanup: typeof slot.cleanup === 'function',
       });
     }
   }
+
+  infoLog('Effect:Summary', 'effect flush 요약입니다.', {
+    componentCount: queuedComponents.length,
+    executedEffectCount,
+    cleanupCount,
+  });
 }
 
 export function useState<T>(

@@ -1,11 +1,12 @@
-import { diff } from './diff';
+import { diff, type PatchOp } from './diff';
 import type { HookSlot } from './hooks';
 import {
   clearCurrentComponent,
   scheduleEffectFlush,
   setCurrentComponent,
+  summarizeHookSlots,
 } from './hooks';
-import { debugLog } from './logger';
+import { debugLog, infoLog } from './logger';
 import { createDom, patch } from './patch';
 import type { VNode } from './vdom';
 
@@ -15,6 +16,42 @@ function describeVNode(node: VNode): string {
   }
 
   return `${node.type}${node.key !== undefined ? `#${String(node.key)}` : ''}`;
+}
+
+function summarizePatchOps(ops: PatchOp[]): Array<Record<string, unknown>> {
+  return ops.map((op) => {
+    if (op.type === 'CHILDREN') {
+      return {
+        type: op.type,
+        childPatchCount: op.childPatches.length,
+        childPatchTypes: op.childPatches.map((childPatch) => childPatch.type),
+      };
+    }
+
+    if (op.type === 'UPDATE_PROPS') {
+      return {
+        type: op.type,
+        addedKeys: Object.keys(op.added),
+        removed: op.removed,
+      };
+    }
+
+    if (op.type === 'UPDATE_TEXT') {
+      return {
+        type: op.type,
+        text: op.text,
+      };
+    }
+
+    if (op.type === 'REPLACE' || op.type === 'APPEND') {
+      return {
+        type: op.type,
+        node: describeVNode(op.node),
+      };
+    }
+
+    return { type: op.type };
+  });
 }
 
 export class FunctionComponent {
@@ -37,6 +74,11 @@ export class FunctionComponent {
       const nextVdom = this.renderFn();
       debugLog('Component:Render', '루트 컴포넌트 렌더가 완료되었습니다.', {
         vnode: describeVNode(nextVdom),
+      });
+      infoLog('Component:RenderSummary', '렌더 결과와 hook 상태 요약입니다.', {
+        vnode: describeVNode(nextVdom),
+        hookCount: this.hooks.length,
+        hooks: summarizeHookSlots(this.hooks),
       });
       return nextVdom;
     } finally {
@@ -73,6 +115,12 @@ export class FunctionComponent {
     this.vdom = nextVdom;
     debugLog('Component:Update', 'diff 계산이 완료되었습니다.', {
       patchCount: ops.length,
+    });
+    infoLog('Component:UpdateSummary', '업데이트 patch 요약입니다.', {
+      patchCount: ops.length,
+      patches: summarizePatchOps(ops),
+      hookCount: this.hooks.length,
+      hooks: summarizeHookSlots(this.hooks),
     });
 
     if (ops.length > 0) {
