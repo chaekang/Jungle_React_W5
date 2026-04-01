@@ -77,6 +77,34 @@ describe('patch', () => {
     expect(domNode.children[2]).toBe(secondNode);
   });
 
+  it('appends a new child without disturbing unchanged existing children', () => {
+    const oldNode = h(
+      'ul',
+      null,
+      h('li', null, 'A'),
+      h('li', null, 'B'),
+    );
+    const newNode = h(
+      'ul',
+      null,
+      h('li', null, 'A'),
+      h('li', null, 'B'),
+      h('li', null, 'C'),
+    );
+
+    const domNode = createDom(oldNode) as HTMLUListElement;
+    document.body.appendChild(domNode);
+
+    const firstNode = domNode.children[0];
+    const secondNode = domNode.children[1];
+
+    patch(domNode, diff(oldNode, newNode));
+
+    expect(Array.from(domNode.children).map((node) => node.textContent)).toEqual(['A', 'B', 'C']);
+    expect(domNode.children[0]).toBe(firstNode);
+    expect(domNode.children[1]).toBe(secondNode);
+  });
+
   it('keeps keyed matches stable across remove, insert, and nested updates', () => {
     const oldNode = h(
       'ul',
@@ -105,5 +133,33 @@ describe('patch', () => {
     expect((domNode.children[0] as HTMLLIElement).className).toBe('new-b');
     expect(Array.from(domNode.children)).not.toContain(nodeA);
     expect(domNode.children[1].textContent).toBe('C');
+  });
+
+  it('reuses keyed DOM nodes produced by function components', () => {
+    const Item = ({ label }: { label: string }) => h('li', null, label);
+    const oldNode = h(
+      'ul',
+      null,
+      h(Item, { key: 'a', label: 'A' }),
+      h(Item, { key: 'b', label: 'B' }),
+    );
+    const newNode = h(
+      'ul',
+      null,
+      h(Item, { key: 'b', label: 'B' }),
+      h(Item, { key: 'a', label: 'A' }),
+    );
+
+    const domNode = createDom(oldNode) as HTMLUListElement;
+    document.body.appendChild(domNode);
+
+    const firstNode = domNode.children[0];
+    const secondNode = domNode.children[1];
+
+    patch(domNode, diff(oldNode, newNode));
+
+    expect(Array.from(domNode.children).map((node) => node.textContent)).toEqual(['B', 'A']);
+    expect(domNode.children[0]).toBe(secondNode);
+    expect(domNode.children[1]).toBe(firstNode);
   });
 });

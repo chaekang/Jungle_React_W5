@@ -46,10 +46,15 @@ function getNodeKey(node: VNode): string | number | undefined {
 function diffChildren(oldNode: VElement, newNode: VElement): ChildPatch[] {
   const oldChildren = oldNode.children;
   const newChildren = newNode.children;
-  const childPatches: ChildPatch[] = [];
   const usedOldIndices = new Set<number>();
   const oldKeyToIndex = new Map<string | number, number>();
   const oldUnkeyedIndices: number[] = [];
+  const matchedChildren: Array<{
+    oldIndex: number | undefined;
+    newIndex: number;
+    node: VNode;
+    ops: PatchOp[];
+  }> = [];
 
   for (let oldIndex = 0; oldIndex < oldChildren.length; oldIndex += 1) {
     const key = getNodeKey(oldChildren[oldIndex]);
@@ -89,32 +94,65 @@ function diffChildren(oldNode: VElement, newNode: VElement): ChildPatch[] {
     }
 
     if (matchedOldIndex === undefined) {
-      childPatches.push({
-        type: 'INSERT',
+      matchedChildren.push({
+        oldIndex: undefined,
         newIndex,
         node: nextChild,
+        ops: [],
       });
       continue;
     }
 
     usedOldIndices.add(matchedOldIndex);
     const ops = diff(oldChildren[matchedOldIndex], nextChild);
-
-    if (ops.length > 0 || matchedOldIndex !== newIndex) {
-      childPatches.push({
-        type: 'PATCH',
-        oldIndex: matchedOldIndex,
-        newIndex,
-        ops,
-      });
-    }
+    matchedChildren.push({
+      oldIndex: matchedOldIndex,
+      newIndex,
+      node: nextChild,
+      ops,
+    });
   }
 
+  const removedIndices: number[] = [];
   for (let oldIndex = 0; oldIndex < oldChildren.length; oldIndex += 1) {
     if (usedOldIndices.has(oldIndex)) {
       continue;
     }
 
+    removedIndices.push(oldIndex);
+  }
+
+  const hasChanges =
+    matchedChildren.some((match) => {
+      if (match.oldIndex === undefined) {
+        return true;
+      }
+
+      return match.oldIndex !== match.newIndex || match.ops.length > 0;
+    }) || removedIndices.length > 0;
+
+  if (!hasChanges) {
+    return [];
+  }
+
+  const childPatches: ChildPatch[] = matchedChildren.map((match) => {
+    if (match.oldIndex === undefined) {
+      return {
+        type: 'INSERT',
+        newIndex: match.newIndex,
+        node: match.node,
+      };
+    }
+
+    return {
+      type: 'PATCH',
+      oldIndex: match.oldIndex,
+      newIndex: match.newIndex,
+      ops: match.ops,
+    };
+  });
+
+  for (const oldIndex of removedIndices) {
     childPatches.push({
       type: 'REMOVE',
       oldIndex,

@@ -82,10 +82,23 @@ export function createElement<P extends BaseProps>(
   delete safeProps.key;
 
   if (typeof type === 'function') {
-    return type({
+    const renderedNode = type({
       ...safeProps,
       children: normalizedChildren,
     } as P & { children?: VNode[] });
+
+    if (
+      renderedNode.kind === 'element' &&
+      renderedNode.key === undefined &&
+      (typeof key === 'string' || typeof key === 'number')
+    ) {
+      return {
+        ...renderedNode,
+        key,
+      };
+    }
+
+    return renderedNode;
   }
 
   return {

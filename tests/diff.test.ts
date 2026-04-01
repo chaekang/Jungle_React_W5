@@ -48,6 +48,12 @@ describe('diff', () => {
         type: 'CHILDREN',
         childPatches: [
           {
+            type: 'PATCH',
+            oldIndex: 0,
+            newIndex: 0,
+            ops: [],
+          },
+          {
             type: 'INSERT',
             newIndex: 1,
             node: h('li', null, 'two'),
@@ -64,7 +70,10 @@ describe('diff', () => {
     expect(diff(oldNode, newNode)).toEqual([
       {
         type: 'CHILDREN',
-        childPatches: [{ type: 'REMOVE', oldIndex: 1 }],
+        childPatches: [
+          { type: 'PATCH', oldIndex: 0, newIndex: 0, ops: [] },
+          { type: 'REMOVE', oldIndex: 1 },
+        ],
       },
     ]);
   });
@@ -92,6 +101,32 @@ describe('diff', () => {
           { type: 'PATCH', oldIndex: 2, newIndex: 0, ops: [] },
           { type: 'PATCH', oldIndex: 0, newIndex: 1, ops: [] },
           { type: 'PATCH', oldIndex: 1, newIndex: 2, ops: [] },
+        ],
+      },
+    ]);
+  });
+
+  it('preserves returned keys from function components for child matching', () => {
+    const Item = ({ label }: { label: string }) => h('li', null, label);
+    const oldNode = h(
+      'ul',
+      null,
+      h(Item, { key: 'a', label: 'A' }),
+      h(Item, { key: 'b', label: 'B' }),
+    );
+    const newNode = h(
+      'ul',
+      null,
+      h(Item, { key: 'b', label: 'B' }),
+      h(Item, { key: 'a', label: 'A' }),
+    );
+
+    expect(diff(oldNode, newNode)).toEqual([
+      {
+        type: 'CHILDREN',
+        childPatches: [
+          { type: 'PATCH', oldIndex: 1, newIndex: 0, ops: [] },
+          { type: 'PATCH', oldIndex: 0, newIndex: 1, ops: [] },
         ],
       },
     ]);
