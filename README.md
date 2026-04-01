@@ -1,209 +1,224 @@
 # Mini React Todo Demo
 
-TypeScript로 React의 핵심 개념을 직접 구현하고, 그 결과물을 브라우저에서 확인할 수 있는 Mini React Todo Demo 프로젝트입니다.
+<p align="center">
+  <a href="https://github.com/chaekang/Jungle_React_W5/blob/main/README.md">
+    <img src="docs/assets/readme-qr.svg" alt="README QR Code" width="180" />
+  </a>
+</p>
 
-이번 프로젝트의 목표는 단순히 Todo 앱을 만드는 것이 아니라, 아래 질문에 직접 답할 수 있는 구현물을 만드는 것이었습니다.
+<p align="center">모바일에서 README를 바로 열 수 있는 QR 코드입니다.</p>
 
-- 함수형 컴포넌트에서 state는 어디에 저장되는가?
-- `setState`가 호출되면 어떤 순서로 화면이 다시 그려지는가?
-- Virtual DOM diff와 patch는 실제 DOM 업데이트를 어떻게 줄여 주는가?
-- 부모와 자식 컴포넌트는 어떤 기준으로 역할을 나누는가?
+정글 5주차 수요 코딩회 과제로, React의 핵심 개념인 `Component`, `State`, `Hooks`, `Virtual DOM + Diff + Patch`를 직접 구현하고 이를 활용한 Todo 데모 페이지를 만든 프로젝트입니다.
 
-이 프로젝트는 위 질문을 코드와 화면으로 함께 설명할 수 있도록 구성했습니다.
+이 README는 발표용 문서입니다. 발표에서는 아래 흐름대로 설명한 뒤, 바로 데모로 연결할 수 있게 구성했습니다.
 
-## 1. 프로젝트 소개
+## 목차
 
-이 저장소는 외부 프레임워크 없이 React의 핵심 기능 일부를 직접 구현한 Mini React 라이브러리와, 이를 활용한 Todo 데모 애플리케이션으로 이루어져 있습니다.
+1. [프로젝트 한 줄 소개](#프로젝트-한-줄-소개)
+2. [발표 순서](#발표-순서)
+3. [과제 요구사항 대응](#과제-요구사항-대응)
+4. [프로젝트 구조](#프로젝트-구조)
+5. [실제 동작 흐름](#실제-동작-흐름)
+6. [데모에서 보여줄 포인트](#데모에서-보여줄-포인트)
+7. [React와 Mini React의 차이](#react와-mini-react의-차이)
+8. [테스트와 검증](#테스트와-검증)
+9. [실행 방법](#실행-방법)
 
-핵심 구현 대상
-- `FunctionComponent` 클래스
-- `hooks` 배열 기반 상태 저장
-- `useState`
-- `useEffect`
-- `useMemo`
-- Virtual DOM 생성
-- Diff 알고리즘
-- Patch를 통한 최소 DOM 업데이트
 
-데모 앱 특징
-- Todo 추가, 완료 토글, 삭제, 수정
-- 전체 / 진행 중 / 완료 필터
-- `document.title` 동기화
-- `hooks` 배열 시각화
-- diff / patch 로그 패널
-- 자식 컴포넌트 props 구조 확인 패널
+## 프로젝트 한 줄 소개
 
-## 2. 구현 목표
+함수형 컴포넌트, 루트 상태 관리, Hook 배열, Virtual DOM diff/patch를 직접 구현한 뒤, 그 내부 동작까지 눈으로 설명할 수 있게 만든 Mini React Todo 데모입니다.
 
-과제 요구사항에 맞춰 다음 원칙을 지켰습니다.
 
-1. 모든 컴포넌트는 함수형으로 작성했습니다.
-2. state와 hooks는 루트 컴포넌트인 `App`에서만 관리합니다.
-3. 자식 컴포넌트는 props만 받아서 렌더링하는 Stateless Component로 구성했습니다.
-4. 상태 변경 이후에는 전체 DOM을 다시 만드는 대신, 이전 Virtual DOM과 새로운 Virtual DOM을 비교한 뒤 바뀐 부분만 patch 합니다.
+### 1. 왜 이 프로젝트를 만들었는가
 
-즉, 이 프로젝트는 "작동하는 결과물"과 "설명 가능한 구현"을 동시에 목표로 했습니다.
+- React를 "사용"하는 대신, React가 왜 그렇게 동작하는지 직접 구현으로 이해하고 싶었습니다.
+- 특히 아래 질문에 답할 수 있는 결과물을 만드는 것이 목표였습니다.
+  - 함수형 컴포넌트는 매번 다시 실행되는데 state는 어디에 저장될까?
+  - `setState`가 호출되면 어떤 순서로 다시 렌더링될까?
+  - 왜 Virtual DOM을 비교하고, 왜 필요한 부분만 patch할까?
 
-## 3. 기술 스택
+### 2. 어떤 구조로 만들었는가
 
-- TypeScript
-- Vite
-- Vitest
-- HTML / CSS
-- Custom Mini React Runtime
+- `src/mini-react`: 직접 구현한 Mini React 코어
+- `src/app`: 그 코어를 사용하는 Todo 데모 앱
+- 루트 `App`이 모든 상태를 관리하고, 자식 컴포넌트는 props만 받는 stateless 구조로 설계했습니다.
 
-## 4. 폴더 구조
+### 3. 무엇을 데모로 보여줄 것인가
+
+- Todo 추가
+- 카드 클릭/체크박스 클릭으로 완료 토글
+- 수정, 저장, 취소, 삭제
+- 전체 / 진행 중 / 완료 필터 변경
+- hooks 배열 상태
+- 최근 diff / patch 로그
+- 선택한 Todo가 자식 `TodoItem`에 어떤 props로 전달되는지
+
+### 4. 마지막에 무엇을 비교할 것인가
+
+- 실제 React와 비교했을 때, 우리 구현은 어디까지 닮았고 어디서 단순화했는지 설명합니다.
+
+## 과제 요구사항 대응
+
+| 요구사항 | 우리 프로젝트의 대응 |
+| --- | --- |
+| 함수형 컴포넌트 | `App`, `TodoInput`, `TodoList`, `TodoItem`, `TodoFooter` 모두 함수형으로 작성 |
+| `FunctionComponent` 클래스 | `src/mini-react/component.ts`에서 구현 |
+| `hooks[]` 배열 | 루트 `FunctionComponent` 인스턴스가 모든 Hook 상태 보관 |
+| `mount()` / `update()` | 최초 렌더와 상태 변경 후 재렌더 담당 |
+| `useState` | 상태 저장 및 setter 호출 시 즉시 `update()` 실행 |
+| `useEffect` | 의존성 비교 후 microtask 시점에 실행 |
+| `useMemo` | 의존성 배열이 바뀔 때만 재계산 |
+| 상태는 루트에서만 관리 | 모든 state는 `App`에 집중 |
+| 자식 컴포넌트는 props only | 자식은 hooks 없이 순수 렌더링만 수행 |
+| Virtual DOM + Diff + Patch | `vdom.ts`, `diff.ts`, `patch.ts`로 구현 |
+| 동작하는 웹 페이지 | Todo 입력, 수정, 삭제, 필터링, 디버그 패널 제공 |
+
+## 프로젝트 구조
 
 ```text
 .
 ├─ src
-│  ├─ mini-react
-│  │  ├─ component.ts
-│  │  ├─ diff.ts
-│  │  ├─ hooks.ts
-│  │  ├─ patch.ts
-│  │  ├─ vdom.ts
-│  │  └─ index.ts
-│  └─ app
-│     ├─ App.tsx
-│     ├─ main.ts
-│     ├─ styles.css
-│     ├─ types.ts
-│     └─ components
-│        ├─ TodoFooter.tsx
-│        ├─ TodoInput.tsx
-│        ├─ TodoItem.tsx
-│        └─ TodoList.tsx
-├─ tests
-│  ├─ app.test.ts
-│  ├─ component.test.ts
-│  ├─ diff.test.ts
-│  ├─ hooks.test.ts
-│  ├─ patch.test.ts
-│  └─ vdom.test.ts
-├─ docs
-└─ conv
+│  ├─ app
+│  │  ├─ App.tsx
+│  │  ├─ main.ts
+│  │  ├─ styles.css
+│  │  ├─ types.ts
+│  │  └─ components
+│  │     ├─ TodoFooter.tsx
+│  │     ├─ TodoInput.tsx
+│  │     ├─ TodoItem.tsx
+│  │     └─ TodoList.tsx
+│  └─ mini-react
+│     ├─ component.ts
+│     ├─ diff.ts
+│     ├─ hooks.ts
+│     ├─ index.ts
+│     ├─ logger.ts
+│     ├─ patch.ts
+│     └─ vdom.ts
+└─ tests
+   ├─ app.test.ts
+   ├─ component.test.ts
+   ├─ diff.test.ts
+   ├─ hooks.test.ts
+   ├─ patch.test.ts
+   └─ vdom.test.ts
 ```
 
-## 5. 핵심 설계
+### 핵심 역할
 
-### 5-1. Component
+- `FunctionComponent`
+  - 루트 렌더러
+  - `hooks[]` 저장소
+  - `mount()`와 `update()` 담당
+- `hooks.ts`
+  - `useState`, `useEffect`, `useMemo`
+  - 현재 렌더 중인 루트 컴포넌트와 `hookIndex` 관리
+- `diff.ts`
+  - 이전/다음 Virtual DOM 비교
+  - key 기반 child 비교 지원
+- `patch.ts`
+  - 실제 DOM에 최소 변경만 반영
+- `App.tsx`
+  - 모든 state와 이벤트 핸들러 관리
+  - 디버그 패널까지 포함한 발표용 데모 UI 구성
 
-루트 렌더링은 `FunctionComponent` 클래스가 담당합니다.
+## 실제 동작 흐름
 
-이 클래스는 다음 책임을 가집니다.
-- `hooks[]` 배열을 보관
-- `mount()`로 최초 렌더링 수행
-- `update()`로 상태 변경 이후 재렌더링 수행
-- 이전 Virtual DOM과 새로운 Virtual DOM 비교
-- diff 결과를 patch로 실제 DOM에 반영
+이 프로젝트는 문서보다 코드 기준으로 설명하는 것이 안전합니다. 발표 때는 아래 흐름을 그대로 말하면 됩니다.
 
-핵심 아이디어는 "컴포넌트 함수는 다시 실행되더라도, 상태는 클래스 인스턴스의 hooks 배열에 남아 있다"는 점입니다.
-
-### 5-2. State
-
-모든 상태는 루트 App에만 존재합니다.
-
-App에서 관리하는 대표 상태
-- `todos`
-- `inputText`
-- `editingId`
-- `editingText`
-- `filter`
-- `clickCount`
-- `inspectedTodoId`
-- `debugTick`
-- `eventLogs`
-
-자식 컴포넌트인 `TodoInput`, `TodoList`, `TodoItem`, `TodoFooter`는 자체 state를 갖지 않고 props만 사용합니다.
-
-이 구조를 통해 발표 때 "왜 state를 여기 두었는가?"를 명확하게 설명할 수 있습니다.
-
-### 5-3. Hooks
-
-구현한 Hooks는 아래 3가지입니다.
-
-#### useState
-
-- hooks 배열의 특정 인덱스에 state를 저장합니다.
-- setter가 호출되면 값을 갱신하고 `component.update()`를 실행합니다.
-- 함수형 업데이트도 지원합니다.
-
-#### useEffect
-
-- 의존성 배열을 비교해 effect 실행 여부를 결정합니다.
-- DOM patch가 끝난 뒤 microtask 시점에 실행되도록 예약합니다.
-- cleanup 함수도 지원합니다.
-
-#### useMemo
-
-- 의존성이 바뀌지 않으면 이전 계산값을 재사용합니다.
-- Todo 개수 계산과 필터링 결과 계산에 활용했습니다.
-
-### 5-4. Virtual DOM + Diff + Patch
-
-렌더링 흐름은 아래와 같습니다.
-
-1. 컴포넌트 함수 실행
-2. 새로운 Virtual DOM 생성
-3. 이전 Virtual DOM과 비교
-4. 변경 사항 목록 생성
-5. 실제 DOM에 필요한 부분만 반영
-
-이 프로젝트에서는 다음 변경을 처리합니다.
-- 텍스트 변경
-- props 변경
-- 자식 노드 추가
-- 자식 노드 삭제
-- 노드 교체
-
-또한 key 기반 자식 비교를 통해 리스트 갱신 시 불필요한 교체를 줄이도록 설계했습니다.
-
-## 6. 데모 페이지 설명
-
-데모 페이지는 단순 Todo 앱이 아니라 "Mini React 내부 동작을 관찰할 수 있는 학습용 데모"에 가깝습니다.
-
-사용자가 확인할 수 있는 요소
-- Todo 추가
-- Todo 완료 토글
-- Todo 수정 / 취소 / 저장
-- Todo 삭제
-- 필터 변경
-- 남은 Todo 개수 확인
-- 현재 hooks 배열 상태 확인
-- 최근 diff / patch 로그 확인
-- 선택한 Todo가 자식 컴포넌트에 어떤 props로 전달되는지 확인
-
-특히 hooks 패널과 patch 로그 패널은 발표에서 차별점으로 활용하기 좋습니다.
-
-## 7. 컴포넌트 구조
+### 1. 초기 마운트
 
 ```text
-App
-├─ TodoInput
-├─ TodoList
-│  └─ TodoItem
-└─ TodoFooter
+main.ts
+  -> new FunctionComponent(container, () => h(App, null))
+  -> mount()
+  -> render()
+  -> App() 실행
+  -> TodoInput / TodoList / TodoItem / TodoFooter 함수들 실행
+  -> Virtual DOM 생성
+  -> createDom()
+  -> 실제 DOM 삽입
+  -> scheduleEffectFlush()
+  -> microtask 시점에 useEffect 실행
 ```
 
-역할 분리
-- `App`: 모든 state와 이벤트 핸들러를 관리하는 루트 컴포넌트
-- `TodoInput`: 입력값 표시와 추가 이벤트 전달
-- `TodoList`: 목록 렌더링
-- `TodoItem`: 개별 Todo 카드 렌더링
-- `TodoFooter`: 남은 개수와 필터 상태 표시
+### 2. 상태 변경 이후 업데이트
 
-## 8. 실행 방법
+```text
+사용자 이벤트
+  -> setState()
+  -> hooks[slotIndex].value 갱신
+  -> component.update()
+  -> render()로 App 다시 실행
+  -> 새 Virtual DOM 생성
+  -> diff(oldVdom, newVdom)
+  -> patch(rootNode, ops)
+  -> scheduleEffectFlush()
+  -> microtask 시점에 effect 실행
+```
+
+### 3. Hook이 유지되는 이유
+
+- state는 함수 안에 저장되지 않습니다.
+- 루트 `FunctionComponent` 인스턴스의 `hooks[]` 배열에 저장됩니다.
+- 렌더링이 시작되면 `hookIndex = 0`부터 다시 읽기 때문에, 같은 순서로 호출된 Hook은 같은 칸을 재사용합니다.
+
+
+## React와 Mini React의 차이
+
+| 항목 | 실제 React | 이번 Mini React |
+| --- | --- | --- |
+| 컴포넌트 단위 상태 보관 | 컴포넌트마다 독립적인 상태 관리 가능 | 루트 `FunctionComponent` 하나가 모든 Hook 상태를 관리 |
+| 렌더링 스케줄링 | Fiber, batching, concurrent rendering 등 고급 기능 존재 | 상태 변경 시 즉시 `update()` |
+| Hook 사용 범위 | 규칙만 지키면 자식 컴포넌트에서도 사용 가능 | 현재 구조에서는 루트에서만 안전 |
+| effect 처리 | 정교한 스케줄링과 commit 단계 존재 | patch 후 microtask에서 flush |
+| diff 최적화 | 훨씬 복잡하고 다양한 최적화 존재 | 학습용으로 단순화된 diff/patch |
+
+### diff 알고리즘을 더 확장하지 않은 이유
+
+- 구현 과정에서 다른 프레임워크들의 diff 방식과 리스트 갱신 전략도 참고했습니다.
+- 특히 key 기반 비교를 더 확장하거나, 컴포넌트 단위로 더 세밀하게 재사용하는 방향도 고려했습니다.
+- 하지만 이번 과제는 `state`를 최상위 컴포넌트에서만 관리하고, 자식 컴포넌트는 props만 받는 구조를 전제로 했습니다.
+- 그래서 자식 컴포넌트별 독립 state, 독립 Hook host, 인스턴스 재사용까지 포함한 고급 diff 전략은 이번 Mini React 구조에 그대로 반영하기 어려웠습니다.
+- 대신 이번 프로젝트에서는 제약조건 안에서 `hooks[]` 배열, 상태 변경 이후 재렌더링, Virtual DOM diff/patch의 핵심 원리를 명확히 설명할 수 있는 구조를 우선했습니다.
+
+### 왜 state를 최상위 컴포넌트만 갖게 했을까
+
+- 이 제약의 의도는 기능을 줄이기 위한 것이라기보다, 상태 흐름을 단순하게 만들어 핵심 원리를 더 잘 보이게 하려는 데 있다고 해석했습니다.
+- 부모만 state를 가지면 데이터 흐름이 한 방향으로 정리되고, 자식은 props만 보게 되므로 상태 변화 추적이 훨씬 쉬워집니다.
+- 또한 자식 컴포넌트까지 각자 state를 가지게 하면 컴포넌트 인스턴스 보존, Hook host 분리, 렌더 순서 안정성 같은 문제가 한꺼번에 등장합니다.
+- 이번 과제는 그 복잡함까지 한 번에 다루기보다, 먼저 `Hook은 어떤 슬롯에 저장되는가`, `setState 이후 어떤 순서로 다시 그려지는가`, `왜 lifting state up이 필요한가`를 이해하게 하려는 의도가 더 크다고 보았습니다.
+
+### 우리가 구현에서 얻은 핵심 이해
+
+- Hook의 본질은 "호출 순서에 따른 슬롯 재사용"이라는 점
+- state를 부모로 올리면 데이터 흐름이 훨씬 명확해진다는 점
+- key가 리스트 diff에서 왜 중요한지 직접 확인할 수 있다는 점
+- React가 왜 내부적으로 더 복잡한 구조를 필요로 하는지 체감할 수 있었다는 점
+
+## 테스트와 검증
+
+`Vitest`로 코어 로직과 앱 동작을 함께 검증했습니다.
+
+- `vdom.test.ts`: VNode 생성과 children 정규화
+- `diff.test.ts`: props 변경, text 변경, key 기반 child diff
+- `patch.test.ts`: 실제 DOM patch 반영과 이벤트/속성 처리
+- `hooks.test.ts`: Hook slot 유지, memo 재사용, effect cleanup
+- `component.test.ts`: mount/update/effect flush와 patch 로그
+- `app.test.ts`: Todo 수정 저장/취소 시 UI가 깨지지 않는지 검증
+
+검증 결과
+
+- `npm run test`: 27개 테스트 통과
+- `npm run build`: 프로덕션 빌드 성공
+
+## 실행 방법
 
 ```bash
 npm install
 npm run dev
-```
-
-빌드 확인
-
-```bash
-npm run build
 ```
 
 테스트 실행
@@ -212,50 +227,8 @@ npm run build
 npm run test
 ```
 
-## 9. 테스트 전략
+빌드 확인
 
-이 프로젝트는 구현뿐 아니라 검증도 함께 진행했습니다.
-
-테스트 범위
-- `vdom.test.ts`: VNode 생성과 자식 정규화
-- `diff.test.ts`: Virtual DOM 비교 결과 검증
-- `patch.test.ts`: 실제 DOM 반영 검증
-- `hooks.test.ts`: hook slot 유지, memoization, effect cleanup 검증
-- `component.test.ts`: mount / update / effect flush 검증
-- `app.test.ts`: Todo 수정 흐름과 버튼 상태 검증
-
-발표 때는 "AI로 빨리 만들었다"보다 "테스트로 검증했다"를 꼭 강조하는 것이 좋습니다.
-
-## 10. 발표에서 강조할 포인트
-
-1. React를 그대로 쓴 것이 아니라 핵심 개념을 직접 구현했다는 점
-2. state를 루트에만 두고 자식은 props만 쓰도록 제한한 점
-3. hooks 배열을 눈으로 확인할 수 있게 만든 점
-4. diff / patch 로그로 DOM 업데이트 과정을 보여줄 수 있다는 점
-5. 테스트 코드로 구현을 검증했다는 점
-
-## 11. 실제 React와의 차이
-
-이번 구현은 학습과 데모를 위한 Mini React이기 때문에 실제 React와는 차이가 있습니다.
-
-- 동시성 렌더링이 없습니다.
-- Fiber 구조가 없습니다.
-- 고급 스케줄링이 없습니다.
-- Hook 규칙 검사가 매우 단순합니다.
-- 최적화 전략이 제한적입니다.
-
-하지만 상태 유지, 재렌더링, 의존성 비교, 최소 DOM 업데이트라는 핵심 원리는 직접 체험할 수 있습니다.
-
-## 12. 회고
-
-이번 프로젝트를 통해 단순히 Todo 앱을 완성한 것이 아니라, React가 왜 이렇게 설계되었는지를 코드 수준에서 체감할 수 있었습니다.
-
-특히 아래 내용을 직접 설명할 수 있게 된 점이 가장 큰 성과입니다.
-
-- state가 함수 바깥 어디에 저장되는지
-- `setState` 이후 어떤 순서로 업데이트가 진행되는지
-- 왜 state를 부모에 올리는지
-- 왜 `key`가 리스트 렌더링에서 중요한지
-- 왜 테스트가 필요한지
-
-이 프로젝트는 구현 결과물과 학습 과정 모두를 보여줄 수 있는 Week 5 결과물입니다.
+```bash
+npm run build
+```
