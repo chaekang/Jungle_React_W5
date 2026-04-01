@@ -1,4 +1,5 @@
 import type { ChildPatch, PatchOp } from './diff';
+import { debugLog } from './logger';
 import type { VElement, VNode } from './vdom';
 import { isFragment } from './vdom';
 
@@ -31,12 +32,20 @@ function setEventListener(node: Node, propName: string, listener: unknown): void
   if (previous && 'removeEventListener' in node) {
     node.removeEventListener(eventName, previous);
     store.delete(eventName);
+    debugLog('Patch:Event', '기존 이벤트 리스너를 제거합니다.', {
+      eventName,
+      nodeName: node.nodeName,
+    });
   }
 
   if (typeof listener === 'function' && 'addEventListener' in node) {
     const nextListener = listener as EventListener;
     node.addEventListener(eventName, nextListener);
     store.set(eventName, nextListener);
+    debugLog('Patch:Event', '새 이벤트 리스너를 등록합니다.', {
+      eventName,
+      nodeName: node.nodeName,
+    });
   }
 }
 
@@ -51,6 +60,10 @@ function removeEventListener(node: Node, propName: string): void {
 
   node.removeEventListener(eventName, previous);
   store?.delete(eventName);
+  debugLog('Patch:Event', '이벤트 리스너를 제거합니다.', {
+    eventName,
+    nodeName: node.nodeName,
+  });
 }
 
 function setAttribute(node: Element, name: string, value: unknown): void {
@@ -139,6 +152,9 @@ function applyProps(node: Node, added: Record<string, unknown>, removed: string[
 function createElementDom(vnode: VElement): Node {
   if (isFragment(vnode)) {
     const fragment = document.createDocumentFragment();
+    debugLog('Patch:CreateDom', 'fragment DOM 생성을 시작합니다.', {
+      childCount: vnode.children.length,
+    });
 
     for (const child of vnode.children) {
       fragment.appendChild(createDom(child));
@@ -148,6 +164,11 @@ function createElementDom(vnode: VElement): Node {
   }
 
   const element = document.createElement(vnode.type);
+  debugLog('Patch:CreateDom', 'element DOM 생성을 시작합니다.', {
+    type: vnode.type,
+    childCount: vnode.children.length,
+    propKeys: Object.keys(vnode.props),
+  });
   applyProps(element, vnode.props, []);
 
   for (const child of vnode.children) {
@@ -159,6 +180,9 @@ function createElementDom(vnode: VElement): Node {
 
 export function createDom(vnode: VNode): Node {
   if (vnode.kind === 'text') {
+    debugLog('Patch:CreateDom', 'text DOM 생성을 시작합니다.', {
+      text: vnode.text,
+    });
     return document.createTextNode(vnode.text);
   }
 
@@ -166,6 +190,11 @@ export function createDom(vnode: VNode): Node {
 }
 
 function applyChildPatches(parentNode: Node, childPatches: ChildPatch[]): void {
+  debugLog('Patch:Children', '자식 patch 적용을 시작합니다.', {
+    parentNodeName: parentNode.nodeName,
+    childPatchCount: childPatches.length,
+    childPatchTypes: childPatches.map((patch) => patch.type),
+  });
   const snapshot = Array.from(parentNode.childNodes);
   const nextNodes = new Map<number, Node>();
 
@@ -177,6 +206,10 @@ function applyChildPatches(parentNode: Node, childPatches: ChildPatch[]): void {
     const target = snapshot[childPatch.oldIndex];
     if (target?.parentNode === parentNode) {
       parentNode.removeChild(target);
+      debugLog('Patch:Children', '기존 자식 노드를 제거합니다.', {
+        oldIndex: childPatch.oldIndex,
+        nodeName: target.nodeName,
+      });
     }
   }
 
@@ -187,6 +220,9 @@ function applyChildPatches(parentNode: Node, childPatches: ChildPatch[]): void {
 
     if (childPatch.type === 'INSERT') {
       nextNodes.set(childPatch.newIndex, createDom(childPatch.node));
+      debugLog('Patch:Children', '새 자식 노드를 삽입 대상으로 준비합니다.', {
+        newIndex: childPatch.newIndex,
+      });
       continue;
     }
 
@@ -198,6 +234,11 @@ function applyChildPatches(parentNode: Node, childPatches: ChildPatch[]): void {
     const nextNode = childPatch.ops.length > 0 ? patch(target, childPatch.ops) : target;
     if (nextNode !== null) {
       nextNodes.set(childPatch.newIndex, nextNode);
+      debugLog('Patch:Children', '기존 자식 노드를 재사용하거나 갱신합니다.', {
+        oldIndex: childPatch.oldIndex,
+        newIndex: childPatch.newIndex,
+        nestedPatchCount: childPatch.ops.length,
+      });
     }
   }
 
@@ -211,12 +252,21 @@ function applyChildPatches(parentNode: Node, childPatches: ChildPatch[]): void {
 
     if (currentNodeAtIndex !== node) {
       parentNode.insertBefore(node, currentNodeAtIndex ?? null);
+      debugLog('Patch:Children', '최종 자식 순서를 재배치합니다.', {
+        targetIndex: index,
+        nodeName: node.nodeName,
+      });
     }
   }
 }
 
 export function patch(node: Node, ops: PatchOp[]): Node | null {
   let currentNode: Node | null = node;
+  debugLog('Patch:Start', 'patch 적용을 시작합니다.', {
+    nodeName: node.nodeName,
+    patchCount: ops.length,
+    patchTypes: ops.map((op) => op.type),
+  });
 
   for (const op of ops) {
     if (currentNode === null) {
@@ -227,23 +277,38 @@ export function patch(node: Node, ops: PatchOp[]): Node | null {
       case 'REPLACE': {
         const nextNode = createDom(op.node);
         currentNode.parentNode?.replaceChild(nextNode, currentNode);
+        debugLog('Patch:Op', 'REPLACE patch를 적용합니다.', {
+          previousNodeName: currentNode.nodeName,
+          nextNodeName: nextNode.nodeName,
+        });
         currentNode = nextNode;
         break;
       }
       case 'UPDATE_TEXT': {
         currentNode.textContent = op.text;
+        debugLog('Patch:Op', 'UPDATE_TEXT patch를 적용합니다.', {
+          text: op.text,
+        });
         break;
       }
       case 'UPDATE_PROPS': {
         applyProps(currentNode, op.added, op.removed);
+        debugLog('Patch:Op', 'UPDATE_PROPS patch를 적용합니다.', {
+          addedKeys: Object.keys(op.added),
+          removed: op.removed,
+        });
         break;
       }
       case 'APPEND': {
         currentNode.appendChild(createDom(op.node));
+        debugLog('Patch:Op', 'APPEND patch를 적용합니다.');
         break;
       }
       case 'REMOVE': {
         currentNode.parentNode?.removeChild(currentNode);
+        debugLog('Patch:Op', 'REMOVE patch를 적용합니다.', {
+          nodeName: currentNode.nodeName,
+        });
         currentNode = null;
         break;
       }

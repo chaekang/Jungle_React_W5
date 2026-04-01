@@ -1,3 +1,5 @@
+import { debugLog } from './logger';
+
 export interface VElement {
   kind: 'element';
   type: string;
@@ -82,6 +84,12 @@ export function createElement<P extends BaseProps>(
   delete safeProps.key;
 
   if (typeof type === 'function') {
+    debugLog('VDom:Component', '함수형 컴포넌트를 즉시 실행해 vnode를 생성합니다.', {
+      componentName: type.name || 'Anonymous',
+      propKeys: Object.keys(safeProps),
+      childCount: normalizedChildren.length,
+      key: typeof key === 'string' || typeof key === 'number' ? key : undefined,
+    });
     const renderedNode = type({
       ...safeProps,
       children: normalizedChildren,
@@ -101,6 +109,12 @@ export function createElement<P extends BaseProps>(
     return renderedNode;
   }
 
+  debugLog('VDom:Element', 'element vnode를 생성합니다.', {
+    type,
+    key: typeof key === 'string' || typeof key === 'number' ? key : undefined,
+    propKeys: Object.keys(safeProps),
+    childCount: normalizedChildren.length,
+  });
   return {
     kind: 'element',
     type,
