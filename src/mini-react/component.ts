@@ -18,39 +18,26 @@ function describeVNode(node: VNode): string {
   return `${node.type}${node.key !== undefined ? `#${String(node.key)}` : ''}`;
 }
 
-function summarizePatchOps(ops: PatchOp[]): Array<Record<string, unknown>> {
+function summarizePatchOps(ops: PatchOp[]): string[] {
   return ops.map((op) => {
     if (op.type === 'CHILDREN') {
-      return {
-        type: op.type,
-        childPatchCount: op.childPatches.length,
-        childPatchTypes: op.childPatches.map((childPatch) => childPatch.type),
-      };
+      const childTypes = op.childPatches.map((childPatch) => childPatch.type).join(',');
+      return `CHILDREN[count=${op.childPatches.length}; types=${childTypes}]`;
     }
 
     if (op.type === 'UPDATE_PROPS') {
-      return {
-        type: op.type,
-        addedKeys: Object.keys(op.added),
-        removed: op.removed,
-      };
+      return `UPDATE_PROPS[added=${Object.keys(op.added).join(',') || '-'}; removed=${op.removed.join(',') || '-'}]`;
     }
 
     if (op.type === 'UPDATE_TEXT') {
-      return {
-        type: op.type,
-        text: op.text,
-      };
+      return `UPDATE_TEXT[text=${op.text}]`;
     }
 
     if (op.type === 'REPLACE' || op.type === 'APPEND') {
-      return {
-        type: op.type,
-        node: describeVNode(op.node),
-      };
+      return `${op.type}[node=${describeVNode(op.node)}]`;
     }
 
-    return { type: op.type };
+    return op.type;
   });
 }
 
@@ -78,7 +65,7 @@ export class FunctionComponent {
       infoLog('Component:RenderSummary', '렌더 결과와 hook 상태 요약입니다.', {
         vnode: describeVNode(nextVdom),
         hookCount: this.hooks.length,
-        hooks: summarizeHookSlots(this.hooks),
+        hooks: summarizeHookSlots(this.hooks).join(' | '),
       });
       return nextVdom;
     } finally {
@@ -118,9 +105,9 @@ export class FunctionComponent {
     });
     infoLog('Component:UpdateSummary', '업데이트 patch 요약입니다.', {
       patchCount: ops.length,
-      patches: summarizePatchOps(ops),
+      patches: summarizePatchOps(ops).join(' | ') || '-',
       hookCount: this.hooks.length,
-      hooks: summarizeHookSlots(this.hooks),
+      hooks: summarizeHookSlots(this.hooks).join(' | '),
     });
 
     if (ops.length > 0) {

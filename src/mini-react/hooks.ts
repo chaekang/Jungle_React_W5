@@ -53,32 +53,17 @@ function summarizeValue(value: unknown): unknown {
   return value;
 }
 
-export function summarizeHookSlots(hooks: HookSlot[]): Array<Record<string, unknown>> {
+export function summarizeHookSlots(hooks: HookSlot[]): string[] {
   return hooks.map((slot, index) => {
     if (slot.type === 'state') {
-      return {
-        index,
-        type: slot.type,
-        value: summarizeValue(slot.value),
-      };
+      return `${index}:state=${JSON.stringify(summarizeValue(slot.value))}`;
     }
 
     if (slot.type === 'effect') {
-      return {
-        index,
-        type: slot.type,
-        deps: slot.deps.map(summarizeValue),
-        needsRun: slot.needsRun,
-        hasCleanup: typeof slot.cleanup === 'function',
-      };
+      return `${index}:effect deps=${JSON.stringify(slot.deps.map(summarizeValue))} needsRun=${slot.needsRun} cleanup=${typeof slot.cleanup === 'function'}`;
     }
 
-    return {
-      index,
-      type: slot.type,
-      deps: slot.deps.map(summarizeValue),
-      value: summarizeValue(slot.value),
-    };
+    return `${index}:memo deps=${JSON.stringify(slot.deps.map(summarizeValue))} value=${JSON.stringify(summarizeValue(slot.value))}`;
   });
 }
 

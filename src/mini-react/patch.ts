@@ -1,5 +1,5 @@
 import type { ChildPatch, PatchOp } from './diff';
-import { debugLog, infoLog } from './logger';
+import { debugLog } from './logger';
 import type { VElement, VNode } from './vdom';
 import { isFragment } from './vdom';
 
@@ -190,11 +190,6 @@ export function createDom(vnode: VNode): Node {
 }
 
 function applyChildPatches(parentNode: Node, childPatches: ChildPatch[]): void {
-  infoLog('Patch:ChildrenSummary', '자식 patch 요약입니다.', {
-    parentNodeName: parentNode.nodeName,
-    childPatchCount: childPatches.length,
-    childPatchTypes: childPatches.map((patch) => patch.type),
-  });
   debugLog('Patch:Children', '자식 patch 적용을 시작합니다.', {
     parentNodeName: parentNode.nodeName,
     childPatchCount: childPatches.length,
@@ -267,11 +262,6 @@ function applyChildPatches(parentNode: Node, childPatches: ChildPatch[]): void {
 
 export function patch(node: Node, ops: PatchOp[]): Node | null {
   let currentNode: Node | null = node;
-  infoLog('Patch:Summary', 'DOM patch 적용 요약입니다.', {
-    nodeName: node.nodeName,
-    patchCount: ops.length,
-    patchTypes: ops.map((op) => op.type),
-  });
   debugLog('Patch:Start', 'patch 적용을 시작합니다.', {
     nodeName: node.nodeName,
     patchCount: ops.length,
