@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mini React - Todo</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 0 16px; }
+      h1 { text-align: center; margin-bottom: 24px; font-size: 2rem; color: #e88; }
+      .todo-input { display: flex; gap: 8px; margin-bottom: 16px; }
+      .todo-input input { flex: 1; padding: 8px 12px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+      .todo-input button { padding: 8px 16px; font-size: 1rem; background: #e88; color: white; border: none; border-radius: 4px; cursor: pointer; }
+      .todo-list { list-style: none; }
+      .todo-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #eee; }
+      .todo-item span { flex: 1; cursor: pointer; }
+      .todo-item span.completed { text-decoration: line-through; color: #aaa; }
+      .todo-item button { padding: 4px 8px; font-size: 0.8rem; background: #f66; color: white; border: none; border-radius: 4px; cursor: pointer; }
+      .todo-footer { margin-top: 12px; color: #888; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/app/main.ts"></script>
+  </body>
+</html>
