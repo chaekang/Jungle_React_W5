@@ -1,3 +1,5 @@
+import { debugLog } from './logger';
+
 export interface StateHook<T> {
   type: 'state';
   value: T;
@@ -54,21 +56,30 @@ function depsChanged(previous: unknown[], next: unknown[]): boolean {
 export function setCurrentComponent(component: HookHost): void {
   currentComponent = component;
   hookIndex = 0;
+  debugLog('Hook:Context', '현재 hook host를 설정하고 cursor를 0으로 초기화합니다.', {
+    existingHookCount: component.hooks.length,
+  });
 }
 
 export function clearCurrentComponent(): void {
   currentComponent = null;
   hookIndex = 0;
+  debugLog('Hook:Context', '현재 hook host를 해제하고 cursor를 초기화합니다.');
 }
 
 export function scheduleEffectFlush(component: HookHost): void {
   pendingEffects.add(component);
+  debugLog('Effect:Schedule', 'effect flush 대상을 큐에 등록합니다.', {
+    queuedComponentCount: pendingEffects.size,
+  });
 
   if (effectFlushScheduled) {
+    debugLog('Effect:Schedule', '이미 microtask flush가 예약되어 있어 재예약하지 않습니다.');
     return;
   }
 
   effectFlushScheduled = true;
+  debugLog('Effect:Schedule', 'microtask 기반 effect flush를 예약합니다.');
   Promise.resolve().then(() => {
     flushEffects();
   });
@@ -78,6 +89,9 @@ export function flushEffects(): void {
   effectFlushScheduled = false;
   const queuedComponents = Array.from(pendingEffects);
   pendingEffects.clear();
+  debugLog('Effect:Flush', '예약된 effect flush를 실행합니다.', {
+    componentCount: queuedComponents.length,
+  });
 
   for (const component of queuedComponents) {
     for (const slot of component.hooks) {
@@ -85,11 +99,17 @@ export function flushEffects(): void {
         continue;
       }
 
+      debugLog('Effect:Flush', 'effect cleanup을 먼저 실행합니다.', {
+        hasCleanup: typeof slot.cleanup === 'function',
+      });
       slot.cleanup?.();
       const nextCleanup = slot.pendingFn();
       slot.cleanup = typeof nextCleanup === 'function' ? nextCleanup : undefined;
       slot.pendingFn = undefined;
       slot.needsRun = false;
+      debugLog('Effect:Flush', 'effect 본문 실행이 완료되었습니다.', {
+        hasCleanup: typeof slot.cleanup === 'function',
+      });
     }
   }
 }
@@ -106,9 +126,17 @@ export function useState<T>(
       type: 'state',
       value: initialValue,
     };
+    debugLog('Hook:State', 'state 슬롯을 초기화합니다.', {
+      slotIndex,
+      initialValue,
+    });
   }
 
   const slot = component.hooks[slotIndex] as StateHook<T>;
+  debugLog('Hook:State', 'state 값을 읽습니다.', {
+    slotIndex,
+    value: slot.value,
+  });
   const setState = (next: T | ((prev: T) => T)) => {
     const currentSlot = component.hooks[slotIndex] as StateHook<T>;
     const nextValue =
@@ -117,9 +145,18 @@ export function useState<T>(
         : next;
 
     if (Object.is(currentSlot.value, nextValue)) {
+      debugLog('Hook:State', 'state 변경이 없어 update를 생략합니다.', {
+        slotIndex,
+        value: currentSlot.value,
+      });
       return;
     }
 
+    debugLog('Hook:State', 'state 값을 갱신하고 update를 요청합니다.', {
+      slotIndex,
+      previousValue: currentSlot.value,
+      nextValue,
+    });
     currentSlot.value = nextValue;
     component.update();
   };
@@ -144,13 +181,27 @@ export function useEffect(
       pendingFn: fn,
       needsRun: true,
     };
+    debugLog('Hook:Effect', 'effect 슬롯을 초기화하고 첫 실행을 예약합니다.', {
+      slotIndex,
+      deps,
+    });
     return;
   }
 
   if (depsChanged(existing.deps, deps)) {
+    debugLog('Hook:Effect', 'deps 변경을 감지해 effect 재실행을 예약합니다.', {
+      slotIndex,
+      previousDeps: existing.deps,
+      nextDeps: deps,
+    });
     existing.deps = deps;
     existing.pendingFn = fn;
     existing.needsRun = true;
+  } else {
+    debugLog('Hook:Effect', 'deps 변경이 없어 기존 effect를 유지합니다.', {
+      slotIndex,
+      deps,
+    });
   }
 }
 
@@ -167,12 +218,30 @@ export function useMemo<T>(fn: () => T, deps: unknown[]): T {
       deps,
       value,
     };
+    debugLog('Hook:Memo', 'memo 슬롯을 초기화하고 값을 계산합니다.', {
+      slotIndex,
+      deps,
+      value,
+    });
     return value;
   }
 
   if (depsChanged(existing.deps, deps)) {
+    const previousDeps = existing.deps;
     existing.deps = deps;
     existing.value = fn();
+    debugLog('Hook:Memo', 'deps 변경으로 memo 값을 다시 계산합니다.', {
+      slotIndex,
+      previousDeps,
+      nextDeps: deps,
+      value: existing.value,
+    });
+  } else {
+    debugLog('Hook:Memo', 'deps 변경이 없어 memo 캐시를 재사용합니다.', {
+      slotIndex,
+      deps,
+      value: existing.value,
+    });
   }
 
   return existing.value;
