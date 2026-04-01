@@ -1,4 +1,4 @@
-import { Fragment, h, type VNode } from '../../mini-react';
+import { h, type VNode } from '../../mini-react';
 import type { Todo } from '../types';
 
 interface TodoItemProps {
@@ -86,30 +86,20 @@ export function TodoItem({
       </div>
       <div className="todo-actions">
         {isEditing ? (
-          <>
-            <button
-              className="todo-action"
-              type="button"
-              onClick={(event: Event) => {
-                event.stopPropagation();
-                onEditSave();
-              }}
-            >
-              저장
-            </button>
-            <button
-              className="todo-action ghost"
-              type="button"
-              onClick={(event: Event) => {
-                event.stopPropagation();
-                onEditCancel();
-              }}
-            >
-              취소
-            </button>
-          </>
+          <button
+            key="save"
+            className="todo-action"
+            type="button"
+            onClick={(event: Event) => {
+              event.stopPropagation();
+              onEditSave();
+            }}
+          >
+            저장
+          </button>
         ) : (
           <button
+            key="edit"
             className="todo-action ghost"
             type="button"
             onClick={(event: Event) => {
@@ -121,7 +111,21 @@ export function TodoItem({
             수정
           </button>
         )}
+        {isEditing ? (
+          <button
+            key="cancel"
+            className="todo-action ghost"
+            type="button"
+            onClick={(event: Event) => {
+              event.stopPropagation();
+              onEditCancel();
+            }}
+          >
+            취소
+          </button>
+        ) : null}
         <button
+          key="delete"
           className="todo-action danger"
           type="button"
           aria-label={`${todo.text} 삭제`}
