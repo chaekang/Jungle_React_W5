@@ -18,13 +18,16 @@ function summarizePatchOp(op: PatchOp, depth = 0): string[] {
     case 'REPLACE':
       return [`${indent}REPLACE -> ${op.node.kind === 'element' ? op.node.type : 'text'}`];
     case 'UPDATE_TEXT':
-      return [`${indent}UPDATE_TEXT -> ${JSON.stringify(op.text)}`];
+      return [`${indent}UPDATE_TEXT`];
     case 'UPDATE_PROPS':
-      return [
-        `${indent}UPDATE_PROPS`,
-        `${indent}  added: ${JSON.stringify(op.added)}`,
-        `${indent}  removed: ${JSON.stringify(op.removed)}`,
-      ];
+      {
+        const addedKeys = Object.keys(op.added);
+        const removedKeys = op.removed;
+        const propBits: string[] = [];
+        if (addedKeys.length > 0) propBits.push(`added=${addedKeys.join(',')}`);
+        if (removedKeys.length > 0) propBits.push(`removed=${removedKeys.join(',')}`);
+        return [`${indent}UPDATE_PROPS${propBits.length > 0 ? ` (${propBits.join(' | ')})` : ''}`];
+      }
     case 'APPEND':
       return [`${indent}APPEND -> ${op.node.kind === 'element' ? op.node.type : 'text'}`];
     case 'REMOVE':
@@ -33,10 +36,12 @@ function summarizePatchOp(op: PatchOp, depth = 0): string[] {
       return [`${indent}MOVE ${op.from} -> ${op.to}`];
     case 'CHILDREN': {
       const header = `${indent}CHILDREN${op.keyed ? ' (keyed)' : ''}`;
-      const nested = op.childPatches.flatMap(childPatch => [
-        `${indent}  index ${childPatch.index}`,
-        ...summarizePatchOp(childPatch.op, depth + 2),
-      ]);
+      const nested = op.childPatches
+        .slice(0, 12)
+        .flatMap(childPatch => summarizePatchOp(childPatch.op, depth + 1));
+      if (op.childPatches.length > 12) {
+        nested.push(`${indent}  ... ${op.childPatches.length - 12} more`);
+      }
       return [header, ...nested];
     }
     default:
@@ -47,7 +52,7 @@ function summarizePatchOp(op: PatchOp, depth = 0): string[] {
 function recordPatchLogs(ops: PatchOp[]): void {
   latestPatchLogLines = ops.length === 0
     ? ['변경 없음']
-    : ops.flatMap(op => summarizePatchOp(op));
+    : ops.flatMap(op => summarizePatchOp(op)).slice(0, 20);
 }
 
 export function getLatestPatchLogLines(): string[] {

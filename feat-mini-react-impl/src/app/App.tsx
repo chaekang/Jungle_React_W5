@@ -163,7 +163,7 @@ export function App() {
     `  [8] effect(title): ${JSON.stringify(hookSnapshot[8] ?? null)}`,
     ']',
   ].join('\n');
-  const patchLogView = [`debugTick: ${debugTick}`, ...getLatestPatchLogLines()].join('\n');
+  const patchLogView = getLatestPatchLogLines().join('\n');
   const childPropsView = inspectedTodo
     ? `TodoItem props = {
   todo: ${JSON.stringify(inspectedTodo)},
