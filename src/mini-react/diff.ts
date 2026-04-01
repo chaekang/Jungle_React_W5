@@ -1,5 +1,4 @@
 import type { VElement, VNode } from './vdom';
-import { debugLog } from './logger';
 
 export type PatchOp =
   | { type: 'REPLACE'; node: VNode }
@@ -34,14 +33,6 @@ function diffProps(
   }
 
   return { added, removed };
-}
-
-function describeVNode(node: VNode): string {
-  if (node.kind === 'text') {
-    return `text("${node.text}")`;
-  }
-
-  return `${node.type}${node.key !== undefined ? `#${String(node.key)}` : ''}`;
 }
 
 function getNodeKey(node: VNode): string | number | undefined {
@@ -134,34 +125,19 @@ function diffChildren(oldNode: VElement, newNode: VElement): ChildPatch[] {
 }
 
 export function diff(oldNode: VNode, newNode: VNode): PatchOp[] {
-  debugLog('Diff:Start', '두 vnode를 비교합니다.', {
-    oldNode: describeVNode(oldNode),
-    newNode: describeVNode(newNode),
-  });
-
   if (oldNode.kind !== newNode.kind) {
-    debugLog('Diff:Decision', 'node kind가 달라 REPLACE를 생성합니다.');
     return [{ type: 'REPLACE', node: newNode }];
   }
 
   if (oldNode.kind === 'text' && newNode.kind === 'text') {
     if (oldNode.text === newNode.text) {
-      debugLog('Diff:Decision', '텍스트가 동일하여 patch를 생성하지 않습니다.');
       return [];
     }
 
-    debugLog('Diff:Decision', '텍스트가 달라 UPDATE_TEXT를 생성합니다.', {
-      previousText: oldNode.text,
-      nextText: newNode.text,
-    });
     return [{ type: 'UPDATE_TEXT', text: newNode.text }];
   }
 
   if (oldNode.kind === 'element' && newNode.kind === 'element' && oldNode.type !== newNode.type) {
-    debugLog('Diff:Decision', 'element type이 달라 REPLACE를 생성합니다.', {
-      previousType: oldNode.type,
-      nextType: newNode.type,
-    });
     return [{ type: 'REPLACE', node: newNode }];
   }
 
@@ -178,10 +154,6 @@ export function diff(oldNode: VNode, newNode: VNode): PatchOp[] {
       added,
       removed,
     });
-    debugLog('Diff:Props', 'props 변경 patch를 생성합니다.', {
-      addedKeys: Object.keys(added),
-      removed,
-    });
   }
 
   const childPatches = diffChildren(oldNode, newNode);
@@ -189,18 +161,6 @@ export function diff(oldNode: VNode, newNode: VNode): PatchOp[] {
     elementPatches.push({
       type: 'CHILDREN',
       childPatches,
-    });
-    debugLog('Diff:Children', '자식 patch를 생성합니다.', {
-      childPatchCount: childPatches.length,
-      childPatchTypes: childPatches.map((patch) => patch.type),
-    });
-  }
-
-  if (elementPatches.length === 0) {
-    debugLog('Diff:Result', '변경점이 없어 빈 patch 목록을 반환합니다.');
-  } else {
-    debugLog('Diff:Result', 'element patch 목록을 반환합니다.', {
-      patchTypes: elementPatches.map((patch) => patch.type),
     });
   }
 

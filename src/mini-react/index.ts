@@ -12,7 +12,6 @@ export {
   useMemo,
   useState,
 } from './hooks';
-export { getLogLevel, infoLog, setLogLevel, type LogLevel } from './logger';
 export { createDom, mount, patch } from './patch';
 export {
   Fragment,
