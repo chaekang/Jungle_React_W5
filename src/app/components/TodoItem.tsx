@@ -28,6 +28,8 @@ export function TodoItem({
   onToggle,
   onDelete,
 }: TodoItemProps): VNode {
+  const isSaveDisabled = isEditing && editingText.trim().length === 0;
+
   return (
     <li
       className={`todo-item ${todo.completed ? 'is-complete' : ''}${isInspected ? ' is-inspected' : ''}`}
@@ -69,7 +71,7 @@ export function TodoItem({
             }}
             onKeyDown={(event: Event) => {
               const keyboardEvent = event as KeyboardEvent;
-              if (keyboardEvent.key === 'Enter') {
+              if (keyboardEvent.key === 'Enter' && !isSaveDisabled) {
                 onEditSave();
               }
               if (keyboardEvent.key === 'Escape') {
@@ -90,8 +92,12 @@ export function TodoItem({
             key="save"
             className="todo-action"
             type="button"
+            disabled={isSaveDisabled}
             onClick={(event: Event) => {
               event.stopPropagation();
+              if (isSaveDisabled) {
+                return;
+              }
               onEditSave();
             }}
           >
