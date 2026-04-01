@@ -22,6 +22,18 @@ const initialTodos: Todo[] = [
 
 let nextTodoId = initialTodos.length + 1;
 
+function matchesFilter(todo: Todo, filter: TodoFilter): boolean {
+  if (filter === 'active') {
+    return !todo.completed;
+  }
+
+  if (filter === 'completed') {
+    return todo.completed;
+  }
+
+  return true;
+}
+
 export function App(): VNode {
   const [todos, setTodos] = useState<Todo[]>(initialTodos);
   const [inputText, setInputText] = useState('');
@@ -55,6 +67,26 @@ export function App(): VNode {
   useEffect(() => {
     document.title = `Todos (${remainingCount} left, ${filter})`;
   }, [remainingCount, filter]);
+
+    useEffect(() => {
+    if (editingId === null) {
+      return;
+    }
+
+    const editingTodo = todos.find((todo) => todo.id === editingId);
+    if (!editingTodo) {
+      setEditingId(null);
+      setEditingText('');
+      pushLog(`편집 중이던 Todo(${editingId})가 삭제되어 editing state를 정리했습니다.`);
+      return;
+    }
+
+    if (!matchesFilter(editingTodo, filter)) {
+      setEditingId(null);
+      setEditingText('');
+      pushLog(`Todo(${editingId})가 현재 필터(${filter})에서 보이지 않아 editing state를 정리했습니다.`);
+    }
+  }, [editingId, filter, todos]);
 
   function pushLog(message: string): void {
     setEventLogs((previousLogs) => {

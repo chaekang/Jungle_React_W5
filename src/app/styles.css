@@ -232,6 +232,11 @@ input {
   color: #f7efe2;
 }
 
+.todo-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .todo-action.ghost {
   background: rgba(16, 32, 51, 0.08);
   color: #18345a;
