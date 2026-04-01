@@ -1,8 +1,9 @@
-export { FunctionComponent } from './component';
+export { FunctionComponent, getLatestPatchLogLines } from './component';
 export { diff, type ChildPatch, type PatchOp } from './diff';
 export {
   clearCurrentComponent,
   flushEffects,
+  getCurrentHookSnapshot,
   type HookHost,
   type HookSlot,
   resetHooksForTests,

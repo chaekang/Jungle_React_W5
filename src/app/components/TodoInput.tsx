@@ -12,7 +12,7 @@ export function TodoInput({ value, onInput, onAdd }: TodoInputProps): VNode {
   return (
     <section className="todo-input-panel">
       <label className="todo-label" for="todo-input">
-        Add a task
+        새 Todo 추가
       </label>
       <div className="todo-input-row">
         <input
@@ -20,7 +20,7 @@ export function TodoInput({ value, onInput, onAdd }: TodoInputProps): VNode {
           className="todo-input"
           type="text"
           value={value}
-          placeholder="What needs to be done?"
+          placeholder="할 일을 입력하세요..."
           onInput={(event: Event) => {
             const target = event.target as HTMLInputElement;
             onInput(target.value);
@@ -40,7 +40,7 @@ export function TodoInput({ value, onInput, onAdd }: TodoInputProps): VNode {
             onAdd();
           }}
         >
-          Add
+          추가
         </button>
       </div>
     </section>

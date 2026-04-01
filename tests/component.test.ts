@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   FunctionComponent,
+  getLatestPatchLogLines,
   h,
   resetHooksForTests,
   useEffect,
@@ -74,5 +75,27 @@ describe('FunctionComponent', () => {
     await flushMicrotasks();
 
     expect(effect).toHaveBeenCalledWith('mounted');
+  });
+
+  it('records the latest patch summary after mount and update', () => {
+    const container = document.createElement('div');
+    let increment: (() => void) | undefined;
+
+    const App = () => {
+      const [count, setCount] = useState(0);
+      increment = () => setCount((prev) => prev + 1);
+
+      return h('div', null, h('span', null, count));
+    };
+
+    const component = new FunctionComponent(container, () => h(App, null));
+    component.mount();
+
+    expect(getLatestPatchLogLines()).toContain('initial mount');
+
+    increment?.();
+
+    expect(getLatestPatchLogLines()[0]).toBe('patch count: 1');
+    expect(getLatestPatchLogLines().some((line) => line.includes('CHILDREN'))).toBe(true);
   });
 });

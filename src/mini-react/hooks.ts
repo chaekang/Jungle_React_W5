@@ -67,6 +67,23 @@ export function summarizeHookSlots(hooks: HookSlot[]): string[] {
   });
 }
 
+function snapshotHookSlot(slot: HookSlot): unknown {
+  if (slot.type === 'state') {
+    return slot.value;
+  }
+
+  if (slot.type === 'memo') {
+    return slot.value;
+  }
+
+  return {
+    type: 'effect',
+    deps: slot.deps,
+    hasCleanup: typeof slot.cleanup === 'function',
+    needsRun: slot.needsRun,
+  };
+}
+
 function assertCurrentComponent(): HookHost {
   if (currentComponent === null) {
     throw new Error('Hooks can only be used during component render.');
@@ -101,6 +118,14 @@ export function clearCurrentComponent(): void {
   currentComponent = null;
   hookIndex = 0;
   debugLog('Hook:Context', '현재 hook host를 해제하고 cursor를 초기화합니다.');
+}
+
+export function getCurrentHookSnapshot(): unknown[] {
+  if (currentComponent === null) {
+    return [];
+  }
+
+  return currentComponent.hooks.map(snapshotHookSlot);
 }
 
 export function scheduleEffectFlush(component: HookHost): void {

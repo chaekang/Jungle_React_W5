@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clearCurrentComponent,
+  getCurrentHookSnapshot,
   resetHooksForTests,
   scheduleEffectFlush,
   setCurrentComponent,
@@ -109,5 +110,27 @@ describe('hooks', () => {
 
     expect(cleanup).toHaveBeenCalledTimes(1);
     expect(secondEffect).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns a serializable snapshot of the current hook slots', () => {
+    const host = createHost();
+
+    setCurrentComponent(host);
+    const [count] = useState(3);
+    const doubled = useMemo(() => count * 2, [count]);
+    useEffect(() => undefined, [count, doubled]);
+    const snapshot = getCurrentHookSnapshot();
+    clearCurrentComponent();
+
+    expect(snapshot).toEqual([
+      3,
+      6,
+      {
+        type: 'effect',
+        deps: [3, 6],
+        hasCleanup: false,
+        needsRun: true,
+      },
+    ]);
   });
 });

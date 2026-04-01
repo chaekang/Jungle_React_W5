@@ -1,4 +1,4 @@
-import '../app/styles.css';
+import './/styles.css';
 
 import { FunctionComponent, h, infoLog, setLogLevel } from '../mini-react';
 import { App } from './App';

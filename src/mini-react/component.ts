@@ -10,6 +10,8 @@ import { debugLog, infoLog } from './logger';
 import { createDom, patch } from './patch';
 import type { VNode } from './vdom';
 
+let latestPatchLogLines: string[] = ['아직 적용된 patch가 없습니다.'];
+
 function describeVNode(node: VNode): string {
   if (node.kind === 'text') {
     return `text("${node.text}")`;
@@ -39,6 +41,26 @@ function summarizePatchOps(ops: PatchOp[]): string[] {
 
     return op.type;
   });
+}
+
+function buildPatchLogLines(ops: PatchOp[], hooks: HookSlot[]): string[] {
+  if (ops.length === 0) {
+    return [
+      'patch count: 0',
+      'DOM 변경 없음',
+      `hook summary: ${summarizeHookSlots(hooks).join(' | ') || '-'}`,
+    ];
+  }
+
+  return [
+    `patch count: ${ops.length}`,
+    ...summarizePatchOps(ops).map((summary, index) => `op[${index}] ${summary}`),
+    `hook summary: ${summarizeHookSlots(hooks).join(' | ') || '-'}`,
+  ];
+}
+
+export function getLatestPatchLogLines(): string[] {
+  return [...latestPatchLogLines];
 }
 
 export class FunctionComponent {
@@ -81,6 +103,11 @@ export class FunctionComponent {
     this.vdom = nextVdom;
     this.rootNode = createDom(nextVdom);
     this.container.replaceChildren(this.rootNode);
+    latestPatchLogLines = [
+      'initial mount',
+      `root vnode: ${describeVNode(nextVdom)}`,
+      `hook summary: ${summarizeHookSlots(this.hooks).join(' | ') || '-'}`,
+    ];
     debugLog('Component:Mount', '초기 DOM 삽입이 완료되었습니다.', {
       rootNodeType: this.rootNode.nodeName,
     });
@@ -100,6 +127,7 @@ export class FunctionComponent {
     const nextVdom = this.render();
     const ops = diff(this.vdom, nextVdom);
     this.vdom = nextVdom;
+    latestPatchLogLines = buildPatchLogLines(ops, this.hooks);
     debugLog('Component:Update', 'diff 계산이 완료되었습니다.', {
       patchCount: ops.length,
     });
